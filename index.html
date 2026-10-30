@@ -1,0 +1,2411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>大富翁 4Fun · 复刻版</title>
+<style>
+body.nofx *,body.nofx *::before,body.nofx *::after{transition:none!important;animation:none!important}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --cell:58px;
+  --gold:#e9c874;--gold2:#b8912f;
+  --cream:#fbf2dd;--ink:#4a3520;
+  --font-title:"STHupo","华文琥珀","STHeiti","SimHei","Microsoft YaHei",sans-serif;
+}
+html,body{height:100%}
+body{
+  font-family:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;color:#fff;
+  background:radial-gradient(1100px 620px at 50% -12%, #24667a 0%, #103743 52%, #071c24 100%),#071c24;
+  min-height:100vh;display:grid;place-items:center;padding:14px;overflow-x:hidden;
+}
+body::before{
+  content:"";position:fixed;inset:-20%;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(220px 220px at 18% 22%, rgba(255,214,140,.10), transparent 65%),
+    radial-gradient(260px 260px at 82% 18%, rgba(140,220,255,.09), transparent 65%),
+    radial-gradient(300px 300px at 70% 84%, rgba(255,150,190,.08), transparent 65%),
+    radial-gradient(240px 240px at 26% 80%, rgba(160,255,190,.07), transparent 65%);
+  animation:drift 24s ease-in-out infinite alternate;
+}
+@keyframes drift{from{transform:translate3d(-12px,-8px,0) scale(1)}to{transform:translate3d(14px,10px,0) scale(1.05)}}
+
+/* ============ 布局 ============ */
+.stage{position:relative;z-index:1;display:flex;gap:14px;align-items:flex-start}
+.board-wrap{
+  position:relative;padding:13px;border-radius:24px;
+  background:
+    repeating-linear-gradient(92deg, rgba(0,0,0,.10) 0 2px, rgba(255,255,255,.035) 2px 5px, transparent 5px 11px),
+    linear-gradient(150deg,#8a5a30 0%,#5b3618 32%,#3f2410 70%,#6f4722 100%);
+  box-shadow:0 34px 70px rgba(0,0,0,.62),0 6px 0 rgba(0,0,0,.35),inset 0 2px 0 rgba(255,232,180,.35),inset 0 -4px 0 rgba(0,0,0,.4);
+}
+.board-wrap::after{content:"";position:absolute;inset:6px;border-radius:19px;pointer-events:none;
+  border:1px solid rgba(255,220,150,.22);box-shadow:inset 0 0 22px rgba(0,0,0,.45)}
+.board{
+  position:relative;display:grid;
+  grid-template-columns:repeat(13,var(--cell));
+  grid-template-rows:repeat(13,var(--cell));
+  border-radius:12px;background:#e6d3ac;
+  box-shadow:inset 0 0 0 3px #b8912f, inset 0 0 34px rgba(80,50,20,.45);
+}
+
+/* ============ 格子 ============ */
+.tile{
+  position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;padding:7px 2px 16px;overflow:hidden;user-select:none;cursor:pointer;
+  background:linear-gradient(180deg,#fff8e8 0%,#f9edd6 55%,#f3e2c2 100%);
+  border:1px solid rgba(120,88,48,.16);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.95), inset 0 -3px 0 rgba(150,112,62,.10);
+  transition:transform .14s ease, box-shadow .14s ease;
+}
+.tile::before{content:"";position:absolute;inset:2px;border-radius:3px;pointer-events:none;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.75), inset 0 0 10px rgba(160,120,70,.10)}
+.tile:hover{transform:translateY(-2px) scale(1.06);box-shadow:0 8px 18px rgba(20,10,0,.45);z-index:6}
+.tile .tint{position:absolute;inset:0;pointer-events:none}
+.tile.corner{background:linear-gradient(160deg,#33765e 0%,#215442 58%,#16382c 100%)}
+.tile.corner::after{content:"";position:absolute;inset:4px;border:1px solid rgba(255,226,160,.28);border-radius:4px;pointer-events:none}
+.tile.corner .cicon{font-size:20px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))}
+.tile.corner .cname{font-family:var(--font-title);font-size:11px;color:#ffe6a8;letter-spacing:.5px;text-shadow:0 2px 0 rgba(0,0,0,.4);white-space:nowrap}
+.tile.corner .csub{font-size:7px;color:#ffd9a0;opacity:.82;white-space:nowrap}
+
+.band{position:absolute;top:0;left:0;right:0;height:9px;box-shadow:inset 0 -1px 0 rgba(0,0,0,.25)}
+.band::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(255,255,255,.28) 0 2px,transparent 2px 6px);opacity:.6}
+.tname{font-size:10.5px;font-weight:800;color:#4a3520;white-space:nowrap;letter-spacing:-.3px;margin-top:6px;text-shadow:0 1px 0 rgba(255,255,255,.8)}
+.tname.sm{font-size:9px;letter-spacing:-.5px}
+.tprice{font-size:7.5px;color:#9a7c50;font-weight:800;background:rgba(180,145,90,.16);border-radius:4px;padding:0 3px;line-height:1.45}
+.dyn{position:absolute;left:0;right:0;bottom:0;height:15px}
+.own{position:absolute;left:0;right:0;bottom:0;height:15px;display:flex;align-items:center;justify-content:center;
+  gap:0;font-size:8px;line-height:1;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.45);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.4), inset 0 -1px 0 rgba(0,0,0,.18)}
+.own .h{font-size:9px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.4))}
+.tile.chance{background:linear-gradient(180deg,#fff2f6 0%,#ffe0ea 60%,#ffd2e0 100%)}
+.tile.fate{background:linear-gradient(180deg,#f3efff 0%,#e4dbff 60%,#d8ccff 100%)}
+.tile.tax{background:linear-gradient(180deg,#fff6de 0%,#ffe9b8 60%,#ffdf9f 100%)}
+.tile.store{background:linear-gradient(180deg,#ecfbf2 0%,#d3f3e0 60%,#bfeacf 100%)}
+.tile.stock{background:linear-gradient(180deg,#e8f4ff 0%,#cfe6fb 60%,#b8d8f5 100%)}
+.tile.bank{background:linear-gradient(180deg,#fff8e0 0%,#ffedb5 60%,#ffe08c 100%)}
+.tile.news{background:linear-gradient(180deg,#eef2f7 0%,#dde6f0 60%,#cbd8e6 100%)}
+.tile.temple{background:linear-gradient(180deg,#fff0e6 0%,#ffdcc4 60%,#ffcba8 100%)}
+.tile .sicon{font-size:17px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,.22))}
+.tile .sname{font-size:9px;font-weight:800;color:#6b4a28;letter-spacing:.2px;white-space:nowrap}
+.tile.chance .sname{color:#b5456e}
+.tile.fate .sname{color:#5f4a9e}
+.tile.tax .sname{color:#96701c}
+.tile.store .sname{color:#21795a}
+.tile.stock .sname{color:#1c5f96}
+.tile.bank .sname{color:#946a12}
+.tile.news .sname{color:#4a5a72}
+.tile.temple .sname{color:#a04a22}
+.pot{position:absolute;top:2px;right:3px;font-size:7.5px;font-weight:800;color:#fff;background:#e2564d;border-radius:5px;padding:0 3px;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.hazard{position:absolute;left:2px;top:2px;font-size:12px;line-height:1;z-index:3;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.45));animation:hz 1.4s ease-in-out infinite}
+@keyframes hz{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.tile.glow{box-shadow:inset 0 0 0 3px #ffd76a, 0 0 18px rgba(255,215,106,.55)}
+.tile.lvmax .tname{color:#8a5a08}
+
+/* ============ 棋盘中心 ============ */
+.center{
+  grid-area:2/2/13/13;position:relative;border-radius:16px;overflow:hidden;
+  background:
+    radial-gradient(circle at 50% 22%, rgba(255,224,150,.20), transparent 62%),
+    radial-gradient(circle at 50% 118%, rgba(0,0,0,.5), transparent 58%),
+    linear-gradient(160deg,#2f735c,#16503f 58%,#0e3128);
+  box-shadow:inset 0 0 0 3px #c9a34d, inset 0 0 0 8px rgba(255,243,201,.10), inset 0 0 90px rgba(0,0,0,.45);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:14px;
+}
+.center::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.3;
+  background-image:radial-gradient(rgba(255,255,255,.10) 1px, transparent 1px);background-size:14px 14px}
+.emblem{position:absolute;top:50%;left:50%;width:520px;height:520px;transform:translate(-50%,-54%);
+  border-radius:50%;pointer-events:none;opacity:.22;
+  background:repeating-conic-gradient(from 0deg, rgba(255,214,140,.5) 0deg 1.2deg, transparent 1.2deg 12deg);
+  mask-image:radial-gradient(circle, transparent 44%, #000 45%, #000 60%, transparent 61%);
+  -webkit-mask-image:radial-gradient(circle, transparent 44%, #000 45%, #000 60%, transparent 61%);
+  animation:spin 70s linear infinite}
+@keyframes spin{to{transform:translate(-50%,-54%) rotate(360deg)}}
+.ribbon{position:relative;z-index:2;display:flex;align-items:center;gap:6px;padding:4px 15px;border-radius:20px;
+  font-size:10.5px;font-weight:800;letter-spacing:2px;color:#5a3a08;
+  background:linear-gradient(180deg,#ffeab0,#e9bf63);box-shadow:0 3px 0 #a8802a, inset 0 1px 0 rgba(255,255,255,.7)}
+.logo{position:relative;z-index:2;text-align:center;line-height:1}
+.logo h1{font-family:var(--font-title);font-size:44px;letter-spacing:3px;
+  background:linear-gradient(180deg,#fffbe2 0%,#ffdc86 34%,#e3aa3c 64%,#ad761c 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 3px 0 #4d300c) drop-shadow(0 8px 16px rgba(0,0,0,.55))}
+.logo .fourfun{font-family:var(--font-title);font-size:11px;color:#bff0d9;letter-spacing:4px;margin-top:3px;opacity:.85}
+.logo .sub{font-size:9px;letter-spacing:6px;color:#ffe3a8;opacity:.8;margin-top:4px;font-weight:700}
+
+.turn-badge{position:relative;z-index:2;display:flex;align-items:center;gap:9px;padding:6px 15px 6px 6px;border-radius:40px;
+  background:rgba(0,0,0,.3);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),0 8px 18px rgba(0,0,0,.32)}
+.turn-badge .av{width:32px;height:32px;border-radius:50%;overflow:hidden;box-shadow:0 0 0 2px rgba(255,255,255,.8)}
+.turn-badge .av svg{width:100%;height:100%;display:block}
+.turn-badge .nm{font-size:12.5px;font-weight:800;letter-spacing:.5px}
+.turn-badge .cash{font-size:10px;opacity:.88;font-variant-numeric:tabular-nums;margin-top:1px}
+.dice-row{position:relative;z-index:2;display:flex;align-items:center;gap:9px}
+.die{width:44px;height:44px;border-radius:11px;background:linear-gradient(160deg,#fffdf8,#e6e1d6);
+  box-shadow:0 5px 0 #b4ac9c, 0 10px 16px rgba(0,0,0,.4), inset 0 2px 0 #fff;
+  display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
+  padding:7px;gap:1px;transition:transform .12s}
+.die .pip{width:7px;height:7px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#6b6257,#2b2620);opacity:0;place-self:center}
+.die .pip.on{opacity:1}
+.die.rolling{animation:dieShake .12s linear infinite}
+@keyframes dieShake{0%{transform:rotate(-7deg) scale(1.05)}50%{transform:rotate(6deg) scale(.97)}100%{transform:rotate(-3deg)}}
+.roll-btn{border:none;cursor:pointer;font-family:var(--font-title);font-size:15px;letter-spacing:2px;
+  color:#5a3a08;padding:11px 22px;border-radius:15px;
+  background:linear-gradient(180deg,#ffeaa6 0%,#f5c95e 55%,#d9a63a 100%);
+  box-shadow:0 6px 0 #9c701c, 0 12px 22px rgba(0,0,0,.45), inset 0 2px 0 rgba(255,255,255,.65);
+  transition:transform .07s, box-shadow .07s;text-shadow:0 1px 0 rgba(255,255,255,.5)}
+.roll-btn:active{transform:translateY(5px);box-shadow:0 1px 0 #9c701c,0 4px 10px rgba(0,0,0,.4)}
+.roll-btn:disabled{filter:grayscale(.55) brightness(.85);cursor:default;box-shadow:0 6px 0 #6b5a3a}
+.skyline{position:absolute;left:0;right:0;bottom:0;height:130px;z-index:1;pointer-events:none;opacity:.8}
+.market{position:relative;z-index:2;display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.mkt{display:flex;align-items:center;gap:4px;padding:3px 9px;border-radius:9px;cursor:pointer;
+  background:rgba(0,0,0,.26);box-shadow:inset 0 0 0 1px rgba(255,255,255,.13);transition:.15s;
+  font-size:10px;font-variant-numeric:tabular-nums}
+.mkt:hover{background:rgba(0,0,0,.4);transform:translateY(-1px)}
+.mkt .mk-n{color:#cfe8dd;opacity:.9}
+.mkt .mk-p{font-weight:900;color:#ffe9a8}
+.mkt.up .mk-a{color:#ff8e7e}
+.mkt.down .mk-a{color:#7de0a8}
+.godbar{position:relative;z-index:2;display:flex;gap:6px;min-height:0}.god-chip{display:flex;align-items:center;gap:4px;font-size:10px;font-weight:800;padding:2px 9px;border-radius:12px;
+  background:rgba(255,255,255,.14);box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
+.god-chip.bad{background:rgba(220,80,80,.24);box-shadow:inset 0 0 0 1px rgba(255,120,120,.45)}
+.newsline{position:relative;z-index:2;max-width:90%;font-size:10.5px;color:#ffe6b0;
+  background:rgba(0,0,0,.28);border-radius:9px;padding:3px 11px;letter-spacing:.5px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.newsline:empty{display:none}
+.ticker{position:relative;z-index:2;max-width:92%;min-height:15px;text-align:center;font-size:10.5px;color:#e9fff5;opacity:.9;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ============ 棋子 ============ */
+.pawns{position:absolute;inset:0;pointer-events:none;z-index:9}
+.pawn{position:absolute;left:0;top:0;width:26px;height:26px;border-radius:50%;border:2px solid #fff;overflow:hidden;background:#fff;
+  box-shadow:0 4px 8px rgba(0,0,0,.5), 0 0 0 2px rgba(0,0,0,.12);
+  transition:transform .13s cubic-bezier(.34,1.4,.64,1);will-change:transform}
+.pawn svg{width:100%;height:100%;display:block}
+.pawn.moving{animation:hop .13s ease}
+@keyframes hop{0%{margin-top:0}50%{margin-top:-6px}100%{margin-top:0}}
+.pawn.turn{box-shadow:0 4px 8px rgba(0,0,0,.5), 0 0 0 3px #ffd76a, 0 0 14px rgba(255,215,106,.9)}
+
+/* ============ 侧栏 ============ */
+.side{width:352px;display:flex;flex-direction:column;gap:8px}
+.pcard{position:relative;display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:14px;
+  background:linear-gradient(180deg,rgba(255,255,255,.13),rgba(255,255,255,.05));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.13),0 8px 18px rgba(0,0,0,.22);transition:.2s;overflow:hidden}
+.pcard.dead{opacity:.4;filter:grayscale(1)}
+.pcard.act{background:linear-gradient(180deg,rgba(255,215,106,.28),rgba(255,215,106,.08));box-shadow:inset 0 0 0 2px #ffd76a,0 8px 22px rgba(255,190,60,.25)}
+.pcard .av{width:38px;height:38px;border-radius:50%;overflow:hidden;flex:0 0 auto;box-shadow:0 0 0 2px rgba(255,255,255,.6)}
+.pcard .av svg{width:100%;height:100%;display:block}
+.pinfo{flex:1;min-width:0}
+.prow1{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+.pname{font-size:12px;font-weight:800;letter-spacing:.4px}
+.pcash{font-size:13px;font-weight:900;font-variant-numeric:tabular-nums;color:#ffe9a8;text-shadow:0 1px 2px rgba(0,0,0,.5)}
+.prow2{display:flex;gap:7px;font-size:9.5px;color:#a8cfc2;margin-top:2px;font-variant-numeric:tabular-nums}
+.prow2 b{color:#d8f0e6;font-weight:800}
+.prow3{display:flex;justify-content:space-between;align-items:center;margin-top:3px;gap:4px}
+.dots{display:flex;gap:2px;flex-wrap:wrap;max-width:140px}
+.dot{width:6px;height:6px;border-radius:2px;opacity:.95}
+.badge{font-size:9px;padding:0 4px;border-radius:5px;background:rgba(0,0,0,.35);color:#ffd9a0;font-weight:700;margin-left:3px;white-space:nowrap}
+.badge.jail{background:#c0392b;color:#fff}
+.badge.hosp{background:#e07b39;color:#fff}
+.badge.god{background:#b8912f;color:#3a2400}
+.badge.god.bad{background:#8a3a3a;color:#ffd9d9}
+.badge.turtle{background:#2f9b72;color:#fff}
+.badge.angel{background:#4a90d9;color:#fff}
+.medal{position:absolute;right:6px;top:6px;font-size:11px}
+
+.panel-box{border-radius:14px;padding:7px 9px;background:rgba(0,0,0,.24);box-shadow:inset 0 0 0 1px rgba(255,255,255,.10)}
+.box-title{display:flex;justify-content:space-between;align-items:center;font-size:10px;letter-spacing:1px;color:#bfe6da;margin-bottom:5px}
+.box-title .pts{color:#ffe08a;font-weight:800;font-variant-numeric:tabular-nums}
+.itemgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
+.it{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  height:38px;border-radius:9px;background:rgba(255,255,255,.10);cursor:pointer;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);transition:.14s;border:none;color:#eafff5;font-family:inherit}
+.it:hover{background:rgba(255,255,255,.2);transform:translateY(-2px)}
+.it .ic{font-size:15px;line-height:1}
+.it .nm{font-size:7.5px;opacity:.85;white-space:nowrap;transform:scale(.92)}
+.it .ct{position:absolute;right:2px;top:1px;font-size:8px;font-weight:900;color:#ffe08a;text-shadow:0 1px 2px #000}
+.it.empty{opacity:.28;cursor:default}
+.it.empty:hover{transform:none;background:rgba(255,255,255,.10)}
+
+.logbox{flex:1;min-height:120px;max-height:150px;overflow:auto;border-radius:14px;padding:8px 10px;
+  background:rgba(0,0,0,.26);box-shadow:inset 0 0 0 1px rgba(255,255,255,.10);
+  font-size:10.5px;line-height:1.7;color:#dbeade}
+.logbox .ln{animation:fadeIn .25s}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.logbox b{font-weight:800}
+.side-btns{display:flex;gap:6px}
+.side-btns button{flex:1;border:none;cursor:pointer;border-radius:11px;padding:8px 2px;font-size:11px;font-weight:800;font-family:inherit;
+  background:rgba(255,255,255,.13);color:#eafff5;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+.side-btns button:hover{background:rgba(255,255,255,.2)}
+
+/* ============ 浮动金额 ============ */
+.float{position:fixed;z-index:80;font-size:14px;font-weight:900;pointer-events:none;text-shadow:0 2px 6px rgba(0,0,0,.6);
+  animation:floatUp 1.05s ease-out forwards}
+@keyframes floatUp{0%{opacity:0;transform:translate(-50%,0) scale(.8)}18%{opacity:1;transform:translate(-50%,-8px) scale(1.12)}100%{opacity:0;transform:translate(-50%,-56px) scale(.95)}}
+.toast{position:fixed;left:50%;top:22px;transform:translateX(-50%);z-index:90;
+  background:rgba(10,30,36,.94);color:#ffe9b8;padding:8px 17px;border-radius:30px;font-size:12.5px;font-weight:700;
+  box-shadow:0 10px 30px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,215,106,.4);
+  opacity:0;transition:.25s;pointer-events:none;white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(6px)}
+
+/* ============ 弹窗 ============ */
+.overlay{position:fixed;inset:0;z-index:70;display:grid;place-items:center;padding:16px;
+  background:rgba(5,18,24,.72);backdrop-filter:blur(7px);opacity:0;pointer-events:none;transition:opacity .22s}
+.overlay.show{opacity:1;pointer-events:auto}
+.panel{position:relative;width:min(520px,92vw);max-height:92vh;overflow:auto;border-radius:22px;padding:22px 22px 18px;color:var(--ink);text-align:center;
+  background:linear-gradient(180deg,#fffdf6,#f8ecd2);
+  box-shadow:0 30px 70px rgba(0,0,0,.6), inset 0 0 0 4px #e2c07a, inset 0 0 0 10px #fffaee;
+  transform:scale(.92);transition:transform .22s cubic-bezier(.2,1.3,.5,1)}
+.overlay.show .panel{transform:scale(1)}
+.panel::-webkit-scrollbar{width:8px}
+.panel::-webkit-scrollbar-thumb{background:rgba(160,120,60,.35);border-radius:4px}
+.panel.kind-chance,.panel.kind-fate{animation:cardIn .42s cubic-bezier(.2,1,.4,1);padding:26px 24px 20px;min-height:280px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center}
+@keyframes cardIn{0%{transform:perspective(900px) rotateY(78deg) scale(.86);opacity:0}60%{opacity:1}100%{transform:perspective(900px) rotateY(0) scale(1)}}
+.panel.kind-chance{background:radial-gradient(circle at 50% 34%, rgba(255,255,255,.95), rgba(255,255,255,0) 58%),
+  linear-gradient(180deg,#fff9fb 0%,#ffe9f1 62%,#ffd7e5 100%);
+  box-shadow:0 30px 70px rgba(0,0,0,.6), inset 0 0 0 4px #ef9fbd, inset 0 0 0 9px #fff8fb, inset 0 0 0 11px rgba(239,159,189,.45)}
+.panel.kind-fate{background:radial-gradient(circle at 50% 34%, rgba(255,255,255,.95), rgba(255,255,255,0) 58%),
+  linear-gradient(180deg,#faf8ff 0%,#ebe4ff 62%,#dbd0ff 100%);
+  box-shadow:0 30px 70px rgba(0,0,0,.6), inset 0 0 0 4px #ae9ae2, inset 0 0 0 9px #faf8ff, inset 0 0 0 11px rgba(174,154,226,.45)}
+.panel.kind-chance .pic,.panel.kind-fate .pic{width:80px;height:80px;border-radius:50%;display:grid;place-items:center;font-size:38px;
+  background:radial-gradient(circle at 50% 32%,#fff,rgba(255,255,255,.55));
+  box-shadow:0 8px 20px rgba(120,70,40,.18), inset 0 0 0 2px rgba(255,255,255,.9);margin:0 auto 10px}
+.card-ribbon{display:inline-block;margin:-4px auto 10px;padding:4px 20px;border-radius:20px;
+  font-family:var(--font-title);font-size:12px;letter-spacing:5px;color:#fff;
+  box-shadow:0 4px 0 rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.45)}
+.kind-chance .card-ribbon{background:linear-gradient(180deg,#ff9cbd,#e2567f);box-shadow:0 4px 0 #a83a5c}
+.kind-fate .card-ribbon{background:linear-gradient(180deg,#a888e8,#7a58c8);box-shadow:0 4px 0 #55408c}
+.panel .pic{font-size:40px;line-height:1;margin-bottom:6px;filter:drop-shadow(0 5px 9px rgba(0,0,0,.22))}
+.panel h3{font-family:var(--font-title);font-size:20px;letter-spacing:1px;color:#7a4d1c;margin-bottom:6px}
+.panel p{font-size:12.5px;line-height:1.8;color:#6d5638}
+.panel .acts{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;justify-content:center}
+.panel .acts.stack{flex-direction:column}
+.btn{flex:1;min-width:92px;border:none;cursor:pointer;font-family:inherit;font-size:13px;font-weight:800;letter-spacing:.5px;
+  padding:11px 10px;border-radius:13px;transition:transform .07s}
+.btn:active{transform:translateY(3px)}
+.btn.gold{background:linear-gradient(180deg,#ffe9a6,#e9b944);color:#5a3a08;box-shadow:0 5px 0 #a8802a}
+.btn.ghost{background:#efe4cd;color:#7a6444;box-shadow:0 5px 0 #cbb894}
+.btn.red{background:linear-gradient(180deg,#ff9a8a,#e2564d);color:#fff;box-shadow:0 5px 0 #a33a32}
+.btn.green{background:linear-gradient(180deg,#a8e6c0,#5cc48d);color:#0b3a26;box-shadow:0 5px 0 #2f8a5e}
+.btn.sm{font-size:11.5px;padding:8px 8px;min-width:0;flex:none}
+.prop-table{width:100%;margin-top:10px;border-collapse:collapse;font-size:11.5px}
+.prop-table td{padding:4px 5px;border-bottom:1px dashed rgba(120,90,50,.25);text-align:left}
+.prop-table td:last-child{text-align:right;font-weight:800;color:#a3762f}
+.prop-table tr:last-child td{border-bottom:none}
+.rent-now{color:#c0392b!important}
+.pick-list{display:flex;flex-direction:column;gap:5px;margin-top:10px;text-align:left;max-height:min(62vh,582px);overflow:auto;padding-right:2px}
+.pick-row{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:11px;cursor:pointer;border:none;font-family:inherit;
+  background:rgba(160,120,60,.10);transition:.12s;width:100%;text-align:left}
+.pick-row:hover{background:rgba(160,120,60,.22);transform:translateX(2px)}
+.pick-row .pi{font-size:17px;line-height:1;flex:0 0 auto}
+.pick-row .pm{flex:1;min-width:0}
+.pick-row .pn{display:block;font-size:12px;font-weight:800;color:#5d4526;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pick-row .ps{display:block;font-size:9.5px;color:#8a7350;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pick-row .pv{font-size:12px;font-weight:900;color:#a3762f;white-space:nowrap}
+.pick-row:disabled{opacity:.45;cursor:default}
+.pick-row:disabled:hover{transform:none;background:rgba(160,120,60,.10)}
+.tabs{display:flex;gap:5px;justify-content:center;margin-bottom:8px}
+.tab{border:none;cursor:pointer;font-family:inherit;font-size:11.5px;font-weight:800;padding:6px 14px;border-radius:9px;
+  background:rgba(160,120,60,.14);color:#7a6444}
+.tab.on{background:linear-gradient(180deg,#ffe9a6,#e9b944);color:#5a3a08;box-shadow:0 2px 0 #a8802a}
+.spark{display:block}
+.stock-row{display:flex;align-items:center;gap:8px;padding:8px 6px;border-bottom:1px dashed rgba(120,90,50,.22)}
+.stock-row:last-child{border-bottom:none}
+.stock-row .sn{width:64px;text-align:left}
+.stock-row .sn b{display:block;font-size:12px;color:#5d4526}
+.stock-row .sn span{font-size:9px;color:#9a8460}
+.stock-row .sp{flex:0 0 84px}
+.stock-row .sv{width:56px;text-align:right;font-size:11.5px;font-weight:900;color:#a3762f;font-variant-numeric:tabular-nums}
+.stock-row .sact{display:flex;gap:4px}
+.up{color:#c0392b!important}.down{color:#2f8a5e!important}
+.rule-list{text-align:left;font-size:12px;line-height:1.85;color:#5d4526}
+.rule-list h4{font-size:12.5px;color:#8a5a08;margin:9px 0 3px;letter-spacing:.5px}
+.rule-list b{color:#a3762f}
+
+/* ============ 开始页 ============ */
+.start{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:18px;
+  background:radial-gradient(900px 520px at 50% 8%,#20606f 0%,#0d2f3a 55%,#051820 100%);transition:opacity .45s, visibility .45s}
+.start.hide{opacity:0;visibility:hidden;pointer-events:none}
+.big-logo{text-align:center;animation:bob 3.6s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.big-logo h1{font-family:var(--font-title);font-size:56px;letter-spacing:4px;line-height:1;
+  background:linear-gradient(180deg,#fffbe2 0%,#ffdc86 34%,#e8ae3f 62%,#a9741a 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 4px 0 #4d300c) drop-shadow(0 14px 26px rgba(0,0,0,.55))}
+.big-logo .en{font-family:var(--font-title);font-size:14px;letter-spacing:9px;color:#8fe3c5;margin-top:7px}
+.big-logo .tag{font-size:11.5px;color:#b8d8cc;letter-spacing:3px;margin-top:5px;opacity:.8}
+.pick-title{font-size:11.5px;letter-spacing:5px;color:#ffe3a8;opacity:.85}
+.chars{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;max-width:1080px}
+.char{width:158px;border-radius:20px;padding:12px 8px 11px;text-align:center;cursor:pointer;position:relative;
+  background:linear-gradient(180deg,rgba(255,255,255,.13),rgba(255,255,255,.03));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),0 12px 26px rgba(0,0,0,.32);transition:.18s}
+.char:hover{transform:translateY(-5px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.3),0 18px 34px rgba(0,0,0,.42)}
+.char.sel{background:linear-gradient(180deg,rgba(255,215,106,.32),rgba(255,215,106,.05));
+  box-shadow:inset 0 0 0 2px #ffd76a,0 0 30px rgba(255,200,80,.38);transform:translateY(-5px)}
+.char .cav{width:70px;height:70px;margin:0 auto 8px;border-radius:50%;overflow:hidden;box-shadow:0 0 0 3px rgba(255,255,255,.75),0 10px 22px rgba(0,0,0,.38)}
+.char .cav svg{width:100%;height:100%;display:block}
+.char .cn{font-family:var(--font-title);font-size:17px;letter-spacing:1px;color:#fff6dd}
+.char .ct{font-size:10px;color:#a9cfc2;margin-top:3px;letter-spacing:1px}
+.char .cs{font-size:9.5px;color:#ffe0a8;margin-top:5px;line-height:1.5;opacity:.9;min-height:30px;max-height:30px;overflow:hidden}
+.char .tick{position:absolute;top:7px;right:9px;color:#ffd76a;font-size:14px;opacity:0}
+.char.sel .tick{opacity:1}
+.deco-layer{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.deco-layer span{position:absolute;left:var(--x);top:var(--y);font-size:var(--s);opacity:.13;filter:blur(.3px);
+  animation:floaty 9s ease-in-out infinite;animation-delay:var(--d)}
+@keyframes floaty{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-18px) rotate(5deg)}}
+.counts{display:flex;gap:8px;background:rgba(0,0,0,.28);padding:5px;border-radius:14px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.counts button{border:none;cursor:pointer;padding:7px 17px;border-radius:10px;font-family:inherit;font-size:12px;font-weight:800;color:#bfe6da;background:transparent}
+.counts button.on{background:linear-gradient(180deg,#ffe9a6,#e9b944);color:#5a3a08;box-shadow:0 3px 0 #a8802a}
+.start-btn{border:none;cursor:pointer;font-family:var(--font-title);font-size:20px;letter-spacing:5px;color:#4d3008;
+  padding:14px 54px;border-radius:18px;
+  background:linear-gradient(180deg,#fff2b8,#ffd166 45%,#dfa437);
+  box-shadow:0 8px 0 #96691a,0 18px 34px rgba(0,0,0,.5),inset 0 2px 0 rgba(255,255,255,.7);
+  transition:transform .08s, box-shadow .08s}
+.start-btn:active{transform:translateY(6px);box-shadow:0 2px 0 #96691a,0 8px 16px rgba(0,0,0,.4)}
+.start .hint{font-size:10.5px;color:#8fb9ab;letter-spacing:1px}
+
+/* 结算 */
+.rank-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;margin-top:6px;background:rgba(120,90,50,.08)}
+.rank-row .av{width:32px;height:32px;border-radius:50%;overflow:hidden;flex:0 0 auto}
+.rank-row .av svg{width:100%;height:100%}
+.rank-row .rn{flex:1;text-align:left;font-size:12.5px;font-weight:800;color:#5d4526}
+.rank-row .rv{font-size:12.5px;font-weight:900;color:#a3762f;font-variant-numeric:tabular-nums}
+.rank-row.first{background:linear-gradient(90deg,rgba(255,215,106,.45),rgba(255,215,106,.08));box-shadow:inset 0 0 0 1.5px #e9c874}
+
+@media (max-width:1280px){.stage{zoom:.88}}
+@media (max-width:1160px){.stage{zoom:.78}}
+@media (max-width:1020px){.stage{zoom:.66}}
+@media (max-width:900px){.stage{zoom:.56}}
+@media (max-width:760px){.stage{zoom:.46}}
+
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+  <div class="board-wrap">
+    <div class="board" id="board">
+      <div class="center">
+        <div class="emblem"></div>
+        <svg class="skyline" viewBox="0 0 640 130" preserveAspectRatio="none" aria-hidden="true">
+          <g fill="#04241c" opacity=".55">
+            <rect x="0" y="70" width="34" height="60"/><rect x="30" y="46" width="26" height="84"/>
+            <rect x="54" y="82" width="40" height="48"/><rect x="90" y="30" width="30" height="100"/>
+            <rect x="118" y="62" width="22" height="68"/><rect x="138" y="88" width="46" height="42"/>
+            <rect x="182" y="54" width="28" height="76"/><rect x="208" y="18" width="18" height="112"/>
+            <rect x="224" y="66" width="36" height="64"/><rect x="258" y="40" width="24" height="90"/>
+            <rect x="280" y="76" width="44" height="54"/><rect x="322" y="24" width="20" height="106"/>
+            <rect x="340" y="58" width="30" height="72"/><rect x="368" y="86" width="38" height="44"/>
+            <rect x="404" y="38" width="26" height="92"/><rect x="428" y="68" width="22" height="62"/>
+            <rect x="448" y="50" width="34" height="80"/><rect x="480" y="16" width="18" height="114"/>
+            <rect x="496" y="72" width="40" height="58"/><rect x="534" y="44" width="26" height="86"/>
+            <rect x="558" y="80" width="34" height="50"/><rect x="590" y="56" width="24" height="74"/>
+            <rect x="612" y="88" width="28" height="42"/>
+          </g>
+        </svg>
+        <div class="ribbon" id="roundTip">第 1 / 40 回合</div>
+        <div class="logo">
+          <h1>大富翁</h1>
+          <div class="fourfun">RICHMAN 4 FUN</div>
+          <div class="sub">复 刻 版</div>
+        </div>
+        <div class="market" id="market"></div>
+        <div class="godbar" id="godbar"></div>
+        <div class="turn-badge" id="badge">
+          <div class="av" id="badgeAv"></div>
+          <div>
+            <div class="nm" id="badgeNm">准备开始</div>
+            <div class="cash" id="badgeCash">—</div>
+          </div>
+        </div>
+        <div class="dice-row">
+          <div class="die" id="die1"></div>
+          <div class="die" id="die2"></div>
+          <button class="roll-btn" id="rollBtn" disabled>掷骰子</button>
+        </div>
+        <div class="newsline" id="newsline"></div>
+        <div class="ticker" id="ticker">买地、盖楼、炒股、请神，把对手的钱都赢过来！</div>
+      </div>
+      <div class="pawns" id="pawns"></div>
+    </div>
+  </div>
+
+  <div class="side">
+    <div id="players"></div>
+    <div class="panel-box">
+      <div class="box-title"><span>🎒 我的道具</span><span class="pts" id="ptsChip">💎 0</span></div>
+      <div class="itemgrid" id="itemgrid"></div>
+    </div>
+    <div class="logbox" id="log"></div>
+    <div class="side-btns">
+      <button id="rulesBtn">📖 规则</button>
+      <button id="bankBtn">🏦 银行</button>
+      <button id="stockBtn">📈 股票</button>
+      <button id="muteBtn">🔊 音效</button>
+    </div>
+  </div>
+</div>
+
+<!-- 开始页 -->
+<div class="start" id="startScreen">
+  <div class="deco-layer" aria-hidden="true">
+    <span style="--x:5%;--y:15%;--s:42px;--d:0s">🎲</span>
+    <span style="--x:90%;--y:11%;--s:34px;--d:1.2s">📈</span>
+    <span style="--x:12%;--y:76%;--s:32px;--d:2.1s">🏠</span>
+    <span style="--x:86%;--y:72%;--s:38px;--d:.6s">🏢</span>
+    <span style="--x:3%;--y:46%;--s:24px;--d:1.8s">💰</span>
+    <span style="--x:94%;--y:44%;--s:26px;--d:2.6s">🎁</span>
+    <span style="--x:23%;--y:7%;--s:20px;--d:3.1s">🔮</span>
+    <span style="--x:73%;--y:90%;--s:22px;--d:.9s">⛩️</span>
+  </div>
+  <div class="big-logo">
+    <h1>大富翁</h1>
+    <div class="en">RICHMAN 4 FUN</div>
+    <div class="tag">复 刻 版 · 骰 子 大 亨</div>
+  </div>
+  <div class="pick-title">选择你的角色</div>
+  <div class="chars" id="chars"></div>
+  <div class="pick-title" style="margin-top:2px">玩家人数</div>
+  <div class="counts" id="counts">
+    <button data-n="2">2 人</button>
+    <button data-n="3">3 人</button>
+    <button data-n="4" class="on">4 人</button>
+  </div>
+  <button class="start-btn" id="startBtn">开始游戏</button>
+  <div class="hint">48 格棋盘 · 28 块地产 · 12 种道具 · 6 位神仙 · 4 支股票 · 建议横屏</div>
+</div>
+
+<!-- 通用弹窗 -->
+<div class="overlay" id="ovl"><div class="panel" id="panel"></div></div>
+<div class="toast" id="toast"></div>
+<div id="autotest-result" style="display:none"></div>
+
+<script>
+/* =====================================================================
+   大富翁 4Fun · 复刻版 —— 数据层
+   48 格棋盘 / 7 组 28 块地产 / 12 种道具 / 6 位神仙 / 4 支股票 / 24 张卡片
+   ===================================================================== */
+
+const N = 48;                 // 棋盘格数
+const START_CASH = 20000;     // 初始现金
+const PASS_GO = 2000;         // 经过起点
+const PASS_GO_PTS = 150;      // 经过起点获得的点数
+const MAX_ROUNDS = 40;        // 回合上限
+const RENT = [0.15, 0.45, 0.9, 1.6, 2.6];   // 各等级租金系数
+const UPG = [0.5, 0.8, 1.2, 1.8];           // 各级升级费用系数
+const LV_NAME = ['空地', '木屋', '洋房', '大楼', '摩天楼'];
+const LV_ICON = ['', '🏠', '🏡', '🏢', '🏬'];
+const MAX_LV = 4;
+const INTEREST = 0.05;        // 银行存款回合利息
+const GOD_TURNS = 4;          // 神仙附身回合数
+
+const GROUPS = {
+  hua:  {name: '华北',   color: '#a0522d'},
+  dong: {name: '华东',   color: '#e2564d'},
+  nan:  {name: '华南',   color: '#f0942c'},
+  jk:   {name: '日韩',   color: '#4caf7d'},
+  sea:  {name: '东南亚', color: '#4a90d9'},
+  eu:   {name: '欧洲',   color: '#9a6bd0'},
+  am:   {name: '美洲',   color: '#d94f8a'},
+};
+
+/* ---------------- 棋盘 ---------------- */
+const TILES = [
+  {type:'start',    name:'起点'},
+  {type:'prop',     name:'北京',      group:'hua',  price:600},
+  {type:'prop',     name:'天津',      group:'hua',  price:650},
+  {type:'chance',   name:'机会'},
+  {type:'prop',     name:'济南',      group:'hua',  price:700},
+  {type:'prop',     name:'青岛',      group:'hua',  price:750},
+  {type:'store',    name:'道具店'},
+  {type:'prop',     name:'上海',      group:'dong', price:900},
+  {type:'prop',     name:'杭州',      group:'dong', price:950},
+  {type:'fate',     name:'命运'},
+  {type:'prop',     name:'苏州',      group:'dong', price:1000},
+  {type:'prop',     name:'南京',      group:'dong', price:1050},
+  {type:'jail',     name:'监狱'},
+  {type:'tax',      name:'税务局'},
+  {type:'prop',     name:'广州',      group:'nan',  price:1200},
+  {type:'prop',     name:'深圳',      group:'nan',  price:1250},
+  {type:'chance',   name:'机会'},
+  {type:'prop',     name:'厦门',      group:'nan',  price:1300},
+  {type:'prop',     name:'香港',      group:'nan',  price:1400},
+  {type:'stock',    name:'证券交易所'},
+  {type:'prop',     name:'东京',      group:'jk',   price:1500},
+  {type:'prop',     name:'大阪',      group:'jk',   price:1550},
+  {type:'news',     name:'新闻'},
+  {type:'prop',     name:'首尔',      group:'jk',   price:1600},
+  {type:'hospital', name:'医院'},
+  {type:'prop',     name:'釜山',      group:'jk',   price:1650},
+  {type:'fate',     name:'命运'},
+  {type:'prop',     name:'新加坡',    group:'sea',  price:1800},
+  {type:'prop',     name:'曼谷',      group:'sea',  price:1800},
+  {type:'bank',     name:'银行'},
+  {type:'prop',     name:'吉隆坡',    group:'sea',  price:1900},
+  {type:'prop',     name:'巴厘岛',    group:'sea',  price:1950},
+  {type:'chance',   name:'机会'},
+  {type:'prop',     name:'巴黎',      group:'eu',   price:2100},
+  {type:'prop',     name:'伦敦',      group:'eu',   price:2200},
+  {type:'store',    name:'道具店'},
+  {type:'park',     name:'停车场'},
+  {type:'prop',     name:'罗马',      group:'eu',   price:2150},
+  {type:'prop',     name:'柏林',      group:'eu',   price:2100},
+  {type:'fate',     name:'命运'},
+  {type:'prop',     name:'纽约',      group:'am',   price:2500},
+  {type:'prop',     name:'洛杉矶',    group:'am',   price:2400},
+  {type:'tax',      name:'税务局'},
+  {type:'prop',     name:'拉斯维加斯',group:'am',   price:2600},
+  {type:'prop',     name:'里约',      group:'am',   price:2300},
+  {type:'chance',   name:'机会'},
+  {type:'temple',   name:'土地庙'},
+  {type:'fate',     name:'命运'},
+];
+
+/* ---------------- 角色（含专属特技） ---------------- */
+const CHARS = [
+  {id:'tu',   name:'阿土伯',   color:'#5aa86a', tag:'勤俭农夫', skill:'买地 9 折，经过起点多领 $300'},
+  {id:'mei',  name:'孙小美',   color:'#e86a9a', tag:'甜心主播', skill:'收到的租金 +25%'},
+  {id:'qian', name:'钱夫人',   color:'#9a6bd0', tag:'豪门贵妇', skill:'存款利息翻倍，过起点多领 $500'},
+  {id:'sha',  name:'沙隆巴斯', color:'#e8913c', tag:'沙漠商人', skill:'付出的租金 -20%'},
+  {id:'nin',  name:'忍太郎',   color:'#3f8c95', tag:'东洋忍者', skill:'坐牢住院 -1 回合 · 踩雷减半'},
+  {id:'wu',   name:'乌咪',     color:'#c9a227', tag:'猫眼少女', skill:'每回合 28% 概率白捡一件道具'},
+];
+
+/* ---------------- 道具（点数购买） ---------------- */
+const ITEMS = [
+  {id:'dice',    name:'遥控骰子', icon:'🎲', cost:80,  desc:'指定下一次掷出的总点数（2-12）'},
+  {id:'block',   name:'路障',     icon:'🚧', cost:100, desc:'在前方 3-9 格放路障，谁经过都得停下'},
+  {id:'mine',    name:'地雷',     icon:'💣', cost:120, desc:'在前方埋雷，踩到住院 3 回合并赔 $1500'},
+  {id:'tp',      name:'传送卡',   icon:'🌀', cost:150, desc:'立刻传送到指定地点，跳过本次掷骰'},
+  {id:'rich',    name:'均富卡',   icon:'⚖️', cost:200, desc:'所有玩家的现金重新平分'},
+  {id:'buycard', name:'购地卡',   icon:'🏷️', cost:180, desc:'按 1.5 倍投资额强买对手一块地'},
+  {id:'wreck',   name:'拆迁卡',   icon:'🔨', cost:140, desc:'把对手一栋楼拆回空地'},
+  {id:'free',    name:'免费卡',   icon:'🎫', cost:100, desc:'下次付租金全免，自动生效'},
+  {id:'swap',    name:'换地卡',   icon:'🔄', cost:220, desc:'用自己一块地换对手一块地'},
+  {id:'reverse', name:'转向卡',   icon:'↩️', cost:60,  desc:'调头往回走，再使用一次恢复'},
+  {id:'turtle',  name:'乌龟卡',   icon:'🐢', cost:160, desc:'指定对手 2 回合只能走 1-2 步'},
+  {id:'angel',   name:'天使卡',   icon:'😇', cost:200, desc:'3 回合内免租金、免疫倒霉事件'},
+];
+const ITEM_MAP = Object.fromEntries(ITEMS.map(i => [i.id, i]));
+
+/* ---------------- 神仙 ---------------- */
+const GODS = {
+  cai:  {name:'财神',   icon:'💰', good:true,  desc:'收租 ×2，过起点奖金 ×2'},
+  tudi: {name:'土地公', icon:'⛩️', good:true,  desc:'停在自己地产免费升级'},
+  fu:   {name:'福神',   icon:'🌟', good:true,  desc:'每次多走 2 步，抽卡偏好运'},
+  angel:{name:'天使',   icon:'😇', good:true,  desc:'免付租金，免疫负面事件'},
+  qiong:{name:'穷神',   icon:'😈', good:false, desc:'付租 ×2，每回合损失现金'},
+  shuai:{name:'衰神',   icon:'☠️', good:false, desc:'每次少走 1 步，容易倒霉'},
+};
+
+/* ---------------- 股票 ---------------- */
+const STOCK_DEFS = [
+  {id:'tech', name:'科技',   code:'KJ', base:120},
+  {id:'land', name:'地产',   code:'DC', base:80},
+  {id:'bank', name:'金融',   code:'JR', base:100},
+  {id:'oil',  name:'能源',   code:'NY', base:60},
+];
+
+/* ---------------- 机会（偏好事） ---------------- */
+const CHANCE_CARDS = [
+  {icon:'🎉', title:'中了彩票', text:'手气爆棚，奖金 <b>$5,000</b> 直接进账！',
+   fn: async p => gain(p, 5000)},
+  {icon:'📈', title:'股市内幕', text:'你提前听到风声，<b>随机一支股票暴涨 20%</b>（持有的人爽了）。',
+   fn: async p => { const s = pick(S.stocks); s.price = Math.round(s.price * 1.2); log(`📈 ${s.name}股暴涨到 ${fmt(s.price)}`); }},
+  {icon:'🎁', title:'神秘礼盒', text:'拆开礼盒，得到 <b>一件随机道具</b>。',
+   fn: async p => { const it = pick(ITEMS); addItem(p, it.id, 1); log(`🎁 ${p.name} 获得「${it.name}」`); }},
+  {icon:'🧧', title:'财神降临', text:'财神爷看中了你，<b>附身 ${GOD_TURNS} 回合</b>：收租翻倍！',
+   fn: async p => attachGod(p, 'cai')},
+  {icon:'🏦', title:'银行分红', text:'你的存款拿到 <b>10% 分红</b>（至少 $500）。',
+   fn: async p => { const b = Math.max(500, Math.round(p.savings * 0.1)); gain(p, b); }},
+  {icon:'🚗', title:'搭顺风车', text:'好心人载你一程，<b>前进 3 格</b>。',
+   fn: async p => { await moveSteps(p, 3, 1); await resolveTile(p, 1); }},
+  {icon:'🎂', title:'生日礼金', text:'今天生日，其他玩家每人送你 <b>$800</b>。',
+   fn: async p => { for (const q of S.players) if (q.alive && q !== p) await payMoney(q, 800, p.id, true); }},
+  {icon:'🏛️', title:'政府补贴', text:'旧城改造，<b>每块地名下 $300</b> 补贴。',
+   fn: async p => { const amt = p.props.length * 300; if (amt) gain(p, amt); else toast('没有地产，一分钱也没拿到'); }},
+  {icon:'✈️', title:'免费旅游', text:'机票中奖，直接飞回<b>起点</b>并领过路费。',
+   fn: async p => { p.pos = 0; passGo(p, true); renderPawns(); }},
+  {icon:'🎤', title:'才艺大赛', text:'你的表演拿了冠军，<b>+$2,000 与 80 点数</b>。',
+   fn: async p => { gain(p, 2000); p.pts += 80; }},
+  {icon:'😇', title:'天使庇佑', text:`天使降到肩头，<b>${GOD_TURNS} 回合免租金</b>。`,
+   fn: async p => attachGod(p, 'angel')},
+  {icon:'🔨', title:'强拆补偿', text:'对手一栋楼被拆，<b>补偿你 $1,200</b>。',
+   fn: async p => { const cand = allPropsOfOthers(p).filter(t => t.level > 0);
+     if (cand.length) { const t = pick(cand); t.level = 0; refreshTile(t.i); log(`🔨 「${t.name}」被拆回空地`); }
+     gain(p, 1200); }},
+];
+
+/* ---------------- 命运（偏坏事） ---------------- */
+const FATE_CARDS = [
+  {icon:'📉', title:'股票大跌', bad:true, text:'抄底抄在半山腰，<b>亏损 $1,500</b>。',
+   fn: async p => { await payMoney(p, 1500); }},
+  {icon:'🏥', title:'食物中毒', bad:true, text:'路边摊吃坏肚子，<b>住院 2 回合</b>。',
+   fn: async p => sendHospital(p, 2)},
+  {icon:'🧾', title:'税务稽查', bad:true, text:'账目不清，<b>现金的 8%</b> 被收进停车奖池。',
+   fn: async p => { const tax = Math.round(p.cash * 0.08); if (tax > 0) { const ok = await payMoney(p, tax); if (ok) { S.pot += tax; renderPark(); } } }},
+  {icon:'😈', title:'穷神缠身', bad:true, text:`穷神跟上了你，<b>${GOD_TURNS} 回合付租翻倍</b>。`,
+   fn: async p => attachGod(p, 'qiong')},
+  {icon:'☠️', title:'衰神附体', bad:true, text:`衰神拍了拍你的肩，<b>${GOD_TURNS} 回合少走 1 步</b>。`,
+   fn: async p => attachGod(p, 'shuai')},
+  {icon:'🧭', title:'迷路了', bad:true, text:'方向感出走，<b>后退 3 格</b>。',
+   fn: async p => { await moveSteps(p, 3, -1); await resolveTile(p, 1); }},
+  {icon:'🤝', title:'朋友借钱', bad:true, text:'老友开口不好拒绝，<b>给最穷的玩家 $1,000</b>。',
+   fn: async p => { const poorest = S.players.filter(q => q.alive && q !== p).sort((a, b) => totalAssets(a) - totalAssets(b))[0];
+     if (poorest) await payMoney(p, 1000, poorest.id); }},
+  {icon:'🚑', title:'车祸', bad:true, text:'被电动车撞了，<b>住院 3 回合</b>并付医药费 $800。',
+   fn: async p => { await payMoney(p, 800); await sendHospital(p, 3); }},
+  {icon:'🔧', title:'房屋维修', bad:true, text:'台风过境，<b>每栋建筑维修费 $400</b>。',
+   fn: async p => { const n = p.props.filter(i => S.tiles[i].level > 0).length; if (n) await payMoney(p, n * 400); else toast('没有建筑，逃过一劫'); }},
+  {icon:'❤️', title:'慈善捐款', bad:true, text:'你慷慨解囊，<b>现金的 5%</b> 捐给最穷的人。',
+   fn: async p => { const amt = Math.round(p.cash * 0.05); const poorest = S.players.filter(q => q.alive && q !== p).sort((a, b) => totalAssets(a) - totalAssets(b))[0];
+     if (amt > 0 && poorest) await payMoney(p, amt, poorest.id); }},
+  {icon:'👮', title:'闯红灯被逮', bad:true, text:'交警把你送进<b>监狱反省 2 回合</b>。',
+   fn: async p => sendJail(p, 2)},
+  {icon:'💰', title:'意外之财', text:'旧衣服口袋里翻出一张支票，<b>+$3,000</b>。',
+   fn: async p => gain(p, 3000)},
+];
+
+/* ---------------- 新闻（全局事件） ---------------- */
+const NEWS = [
+  {title:'央行降息', text:'存款利率临时下调，本回合利息减半。', fn: () => { S.interestMod = 0.5; }},
+  {title:'股市沸腾', text:'资金涌入，随机一支股票暴涨 18%。',
+   fn: () => { const s = pick(S.stocks); s.price = Math.round(s.price * 1.18); return `${s.name}股大涨至 ${fmt(s.price)}`; }},
+  {title:'房市调控', text:'租金管制，本回合所有租金 -25%。', fn: () => { S.rentMod = 0.75; }},
+  {title:'通货膨胀', text:'物价上涨，每位玩家现金 -3%。',
+   fn: () => { S.players.filter(p => p.alive).forEach(p => { p.cash = Math.round(p.cash * 0.97); }); }},
+  {title:'慈善晚宴', text:'最富的人要捐 10% 现金给最穷的人。',
+   fn: () => { const list = S.players.filter(p => p.alive).sort((a, b) => totalAssets(b) - totalAssets(a));
+     const rich = list[0], poor = list[list.length - 1];
+     if (rich && poor && rich !== poor) { const amt = Math.round(rich.cash * 0.1); rich.cash -= amt; poor.cash += amt;
+       log(`❤️ ${rich.name} 捐出 ${fmt(amt)} 给 ${poor.name}`); } }},
+  {title:'城市改建', text:'随机一块地产免费升一级。',
+   fn: () => { const cand = S.tiles.filter(t => isProp(t) && t.owner != null && t.level < MAX_LV);
+     if (!cand.length) return '没有可改建的地产';
+     const t = pick(cand); t.level++; refreshTile(t.i);
+     return `「${t.name}」升级为${LV_NAME[t.level]}`; }},
+  {title:'税务稽查', text:'现金最多的人被追缴 8% 税款（进奖池）。',
+   fn: () => { const p = S.players.filter(x => x.alive).sort((a, b) => b.cash - a.cash)[0];
+     const amt = Math.round(p.cash * 0.08); p.cash -= amt; S.pot += amt; renderPark();
+     return `${p.name} 缴税 ${fmt(amt)}`; }},
+  {title:'科技突破', text:'科技股涨停，价格上涨 22%。',
+   fn: () => { const s = S.stocks.find(x => x.id === 'tech'); s.price = Math.round(s.price * 1.22); return `科技股 ${fmt(s.price)}`; }},
+  {title:'旅游旺季', text:'酒店爆满，本回合租金 +20%。', fn: () => { S.rentMod = 1.2; }},
+  {title:'地王诞生', text:'随机一位玩家获得 200 点数。',
+   fn: () => { const p = pick(S.players.filter(x => x.alive)); p.pts += 200; return `${p.name} 获得 200 点数`; }},
+  {title:'慈善彩票', text:'每位玩家获得 $600 红包。',
+   fn: () => { S.players.filter(p => p.alive).forEach(p => { p.cash += 600; }); }},
+];
+
+
+/* =====================================================================
+   大富翁 4Fun · 复刻版 —— 规则内核
+   ===================================================================== */
+
+let S = null;
+let SPEED = 1;
+let MUTE = false;
+let AC = null;
+
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, Math.max(0, ms * SPEED)));
+const rnd = n => Math.floor(Math.random() * n);
+const pick = a => a[rnd(a.length)];
+const fmt = n => '$' + Math.round(n).toLocaleString('en-US');
+const isProp = t => t.type === 'prop';
+const isCorner = ty => ['start', 'jail', 'hospital', 'park'].includes(ty);
+
+/* ---------------- 音效 ---------------- */
+function tone(freq, dur, type = 'sine', vol = 0.05, delay = 0) {
+  if (MUTE || SPEED === 0) return;
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    const t0 = AC.currentTime + delay;
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t0);
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(vol, t0 + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(AC.destination);
+    o.start(t0); o.stop(t0 + dur + 0.02);
+  } catch (e) {}
+}
+const sfx = {
+  dice: () => { tone(300, .05, 'square', .04); tone(420, .05, 'square', .04, .07); tone(520, .05, 'square', .04, .14); },
+  coin: () => { tone(880, .09, 'triangle', .06); tone(1320, .12, 'triangle', .05, .07); },
+  buy:  () => { tone(523, .12, 'sine', .06); tone(659, .12, 'sine', .06, .08); tone(784, .18, 'sine', .06, .16); },
+  pay:  () => { tone(220, .16, 'sawtooth', .04); tone(160, .2, 'sawtooth', .035, .1); },
+  bad:  () => { tone(180, .3, 'square', .04); },
+  win:  () => { [523, 659, 784, 1047].forEach((f, i) => tone(f, .22, 'sine', .07, i * .11)); },
+};
+
+/* =====================================================================
+   资产与金钱
+   ===================================================================== */
+function invested(t) {
+  let v = t.price;
+  for (let l = 0; l < t.level; l++) v += Math.round(t.price * UPG[l]);
+  return v;
+}
+function upgCost(t) { return Math.round(t.price * UPG[t.level]); }
+function buyCost(p, t) { return Math.round(t.price * (p.charId === 'tu' ? 0.9 : 1)); }
+function ownsGroup(pid, group) {
+  return S.tiles.filter(t => isProp(t) && t.group === group).every(t => t.owner === pid);
+}
+function stockValue(p) {
+  return S.stocks.reduce((s, st) => s + (p.stocks[st.id] || 0) * st.price, 0);
+}
+function totalAssets(p) {
+  return Math.round(p.cash + p.savings + stockValue(p) + p.props.reduce((s, i) => s + invested(S.tiles[i]) * 0.9, 0));
+}
+function allPropsOfOthers(p) {
+  return S.tiles.filter(t => isProp(t) && t.owner != null && t.owner !== p.id && S.players[t.owner].alive);
+}
+function rentOf(t) {
+  const owner = S.players[t.owner];
+  if (!owner) return 0;
+  let base = t.price * RENT[t.level];
+  if (ownsGroup(t.owner, t.group)) base *= 2;
+  if (owner.god === 'cai') base *= 2;
+  base *= (S.rentMod || 1);
+  return Math.round(base);
+}
+
+function gain(p, amt, quiet) {
+  p.cash += amt;
+  if (!quiet) {
+    if (p._el) floatMoney(p, '+' + fmt(amt), '#9dffb0');
+    sfx.coin();
+  }
+  updatePlayersOnly();
+}
+
+/** 付钱；toId 为收款人。返回 false 表示破产 */
+async function payMoney(p, amount, toId = null, quiet = false) {
+  const ok = await charge(p, amount, toId);
+  if (ok && !quiet && p._el) floatMoney(p, '-' + fmt(amount), '#ff9c9c');
+  updatePlayersOnly();
+  return ok;
+}
+
+/** 扣款：现金 → 卖股票 → 取存款 → 变卖地产 → 破产 */
+async function charge(p, amount, toId = null) {
+  amount = Math.round(amount);
+  if (amount <= 0) return true;
+  if (p.cash >= amount) {
+    p.cash -= amount;
+    if (toId != null && S.players[toId]) S.players[toId].cash += amount;
+    updatePlayersOnly();
+    return true;
+  }
+  // 1) 卖股票
+  for (const s of S.stocks) {
+    if (p.cash >= amount) break;
+    const sh = p.stocks[s.id] || 0;
+    if (sh > 0) {
+      p.stocks[s.id] = 0;
+      p.cash += sh * s.price;
+      p.stockCost[s.id] = 0;
+      log(`📉 <b>${p.name}</b> 被迫卖出 ${s.name}股 ${sh} 股，换得 ${fmt(sh * s.price)}`);
+      updatePlayersOnly();
+      await sleep(160);
+    }
+  }
+  // 2) 取存款
+  if (p.cash < amount && p.savings > 0) {
+    const take = Math.min(p.savings, amount - p.cash);
+    p.savings -= take; p.cash += take;
+    log(`🏦 <b>${p.name}</b> 从银行取出 ${fmt(take)}`);
+    updatePlayersOnly();
+    await sleep(160);
+  }
+  // 3) 变卖地产（先卖便宜的）
+  let guard = 0;
+  while (p.cash < amount && p.props.length && guard++ < 40) {
+    p.props.sort((a, b) => invested(S.tiles[a]) - invested(S.tiles[b]));
+    const ti = p.props.shift();
+    const t = S.tiles[ti];
+    const val = Math.round(invested(t) * 0.8);
+    t.owner = null; t.level = 0;
+    p.cash += val;
+    log(`💸 <b>${p.name}</b> 变卖「${t.name}」换得 ${fmt(val)}`);
+    refreshTile(ti); renderPark(); updatePlayersOnly();
+    await sleep(200);
+  }
+  if (p.cash >= amount) {
+    p.cash -= amount;
+    if (toId != null && S.players[toId]) S.players[toId].cash += amount;
+    updatePlayersOnly();
+    return true;
+  }
+  // 4) 破产
+  await goBankrupt(p, amount, toId);
+  return false;
+}
+
+async function goBankrupt(p, owed, toId) {
+  const lost = p.cash;
+  p.cash = 0;
+  p.alive = false;
+  const creditor = (toId != null) ? S.players[toId] : null;
+  // 地产转给债主，否则回到无主
+  p.props.forEach(ti => {
+    const t = S.tiles[ti];
+    if (creditor && creditor.alive) { t.owner = creditor.id; creditor.props.push(ti); }
+    else { t.owner = null; t.level = 0; }
+    refreshTile(ti);
+  });
+  p.props = [];
+  p.stocks = {tech: 0, land: 0, bank: 0, oil: 0};
+  p.savings = 0;
+  log(`💥 <b style="color:${p.color}">${p.name}</b> 破产出局！（欠款 ${fmt(owed - lost)}${creditor ? '，资产归 ' + creditor.name : ''}）`);
+  sfx.bad();
+  updateUI();
+  await sleep(500);
+  if (!p.ai && !(qs.has('autotest') || qs.has('smoketest'))) {
+    await modal({
+      icon: '💥', title: '你破产啦',
+      html: `<p>房子卖光、现金见底，这局到此为止。<br>下次记得留点现金周转哦！</p>`,
+      actions: [{label: '看看结果', v: 1}]
+    });
+  }
+  checkEnd();
+}
+
+/* =====================================================================
+   点数 / 道具
+   ===================================================================== */
+function addItem(p, id, n = 1) {
+  p.items[id] = (p.items[id] || 0) + n;
+  updateUI();
+}
+
+async function useItem(p, id, ai = false) {
+  if (!p.items[id] || p.items[id] <= 0) { if (!ai) toast('没有这件道具'); return; }
+  if (!ai && (!S.awaitRoll || S.players[S.cur] !== p)) { toast('轮到你掷骰子时才能用道具'); return; }
+  const it = ITEM_MAP[id];
+  let used = false;
+
+  if (id === 'dice') {
+    let v;
+    if (ai) v = 2 + rnd(11);
+    else v = await chooseNumber('遥控骰子', `指定这次走几步（你有 ${p.pts} 点数）`, [2,3,4,5,6,7,8,9,10,11,12]);
+    if (!v) return;
+    p.remote = v; used = true;
+    log(`🎲 <b>${p.name}</b> 用遥控骰子指定了 ${v} 点`);
+    toast(`点数已设为 ${v}`);
+  }
+
+  else if (id === 'block' || id === 'mine') {
+    const isBlock = id === 'block';
+    const offs = [3, 5, 7, 9];
+    let off;
+    if (ai) off = pick(offs);
+    else {
+      off = await chooseRows(
+        isBlock ? '放置路障' : '埋设地雷',
+        '选一个距离，放在你前方的格子上',
+        offs.map(o => ({
+          icon: isBlock ? '🚧' : '💣',
+          name: `前方 ${o} 格`,
+          sub: S.tiles[(p.pos + o) % N].name,
+          val: o
+        })), '取消');
+    }
+    if (!off) return;
+    const idx = (p.pos + off) % N;
+    if (S.tiles[idx].block != null || S.tiles[idx].mine != null) { if (!ai) toast('那里已经有陷阱了'); return; }
+    if (isBlock) S.tiles[idx].block = p.id; else S.tiles[idx].mine = p.id;
+    refreshTile(idx); used = true;
+    log(`${isBlock ? '🚧' : '💣'} <b>${p.name}</b> 在「${S.tiles[idx].name}」${isBlock ? '放了路障' : '埋了地雷'}`);
+  }
+
+  else if (id === 'tp') {
+    const best = mine => mine.length ? mine.sort((a, b) => invested(S.tiles[b]) - invested(S.tiles[a]))[0] : null;
+    const myBest = best(p.props.slice());
+    const otherBest = best(allPropsOfOthers(p).map(t => t.i));
+    const opts = [
+      {icon: '🏁', name: '起点', sub: '领过路费 + 点数', val: 0},
+      {icon: '🛒', name: '道具店', sub: '买道具', val: S.tiles.findIndex(t => t.type === 'store')},
+      {icon: '📈', name: '证券交易所', sub: '买卖股票', val: S.tiles.findIndex(t => t.type === 'stock')},
+      {icon: '🏦', name: '银行', sub: '存取款', val: S.tiles.findIndex(t => t.type === 'bank')},
+      {icon: '⛩️', name: '土地庙', sub: '求神仙', val: S.tiles.findIndex(t => t.type === 'temple')},
+    ];
+    if (myBest != null) opts.push({icon: '🏙️', name: '我的「' + S.tiles[myBest].name + '」', sub: '回去盖楼', val: myBest});
+    if (otherBest != null) opts.push({icon: '☠️', name: '对手的「' + S.tiles[otherBest].name + '」', sub: '去踩雷付租', val: otherBest});
+    let dest;
+    if (ai) dest = pick(opts).val;
+    else dest = await chooseRows('传送卡', '传送到哪里？传送后本回合不再掷骰', opts, '取消');
+    if (dest == null) return;
+    p.pos = dest; renderPawns(); used = true;
+    log(`🌀 <b>${p.name}</b> 传送到「${S.tiles[dest].name}」`);
+    await sleep(260);
+    S.skipRoll = true;
+    await resolveTile(p);
+    if (S.rollResolve) { const r = S.rollResolve; S.rollResolve = null; setTimeout(r, 220); }
+  }
+
+  else if (id === 'rich') {
+    if (!ai) {
+      const ok = await modal({icon: '⚖️', title: '使用均富卡？', html: `<p>所有存活玩家的现金会被收拢后平分。<br>你现在有 <b>${fmt(p.cash)}</b>。</p>`,
+        actions: [{label: '使用', v: 1}, {label: '算了', v: 0, cls: 'ghost'}]});
+      if (!ok) return;
+    }
+    const alive = S.players.filter(q => q.alive);
+    const total = alive.reduce((s, q) => s + q.cash, 0);
+    const avg = Math.round(total / alive.length);
+    alive.forEach(q => { q.cash = avg; });
+    used = true;
+    log(`⚖️ <b>${p.name}</b> 使用均富卡，所有人现金变成 ${fmt(avg)}`);
+    sfx.coin(); updateUI();
+  }
+
+  else if (id === 'buycard') {
+    const cand = allPropsOfOthers(p);
+    if (!cand.length) { if (!ai) toast('没有可以买的地产'); return; }
+    let t;
+    if (ai) t = pick(cand);
+    else {
+      const v = await chooseRows('购地卡', '按 1.5 倍投资额强买一块地', cand.map(x => ({
+        icon: LV_ICON[x.level] || '🏞️',
+        name: x.name,
+        sub: `${S.players[x.owner].name} · ${LV_NAME[x.level]}`,
+        val: x.i, right: fmt(Math.round(invested(x) * 1.5))
+      })), '取消');
+      if (v == null) return;
+      t = S.tiles[v];
+    }
+    const price = Math.round(invested(t) * 1.5);
+    if (p.cash < price) { if (!ai) toast(`需要 ${fmt(price)}，现金不够`); return; }
+    const from = S.players[t.owner];
+    p.cash -= price; from.cash += price;
+    from.props = from.props.filter(i => i !== t.i);
+    t.owner = p.id; p.props.push(t.i);
+    used = true;
+    log(`🏷️ <b>${p.name}</b> 用 ${fmt(price)} 从 ${from.name} 手里买下「${t.name}」`);
+    sfx.buy(); refreshTile(t.i); updateUI();
+  }
+
+  else if (id === 'wreck') {
+    const cand = allPropsOfOthers(p).filter(t => t.level > 0);
+    if (!cand.length) { if (!ai) toast('对手没有可拆的建筑'); return; }
+    let t;
+    if (ai) t = pick(cand);
+    else {
+      const v = await chooseRows('拆迁卡', '把对手一栋楼拆回空地', cand.map(x => ({
+        icon: LV_ICON[x.level], name: x.name, sub: `${S.players[x.owner].name} · ${LV_NAME[x.level]}`, val: x.i
+      })), '取消');
+      if (v == null) return;
+      t = S.tiles[v];
+    }
+    t.level = 0; used = true;
+    log(`🔨 <b>${p.name}</b> 把「${t.name}」拆成了空地`);
+    refreshTile(t.i); updateUI();
+  }
+
+  else if (id === 'free') {
+    p.freePass = true; used = true;
+    log(`🎫 <b>${p.name}</b> 准备好了免费卡，下次租金全免`);
+  }
+
+  else if (id === 'swap') {
+    if (!p.props.length) { if (!ai) toast('你还没有地产'); return; }
+    const cand = allPropsOfOthers(p);
+    if (!cand.length) { if (!ai) toast('对手没有地产'); return; }
+    let mineIdx, theirs;
+    if (ai) { mineIdx = pick(p.props); theirs = pick(cand); }
+    else {
+      const v1 = await chooseRows('换地卡 · 第一步', '选一块自己的地送出去', p.props.map(i => ({
+        icon: LV_ICON[S.tiles[i].level] || '🏞️', name: S.tiles[i].name,
+        sub: `${LV_NAME[S.tiles[i].level]} · 值 ${fmt(invested(S.tiles[i]))}`, val: i
+      })), '取消');
+      if (v1 == null) return;
+      const v2 = await chooseRows('换地卡 · 第二步', '想换对手哪一块地？', cand.map(x => ({
+        icon: LV_ICON[x.level] || '🏞️', name: x.name,
+        sub: `${S.players[x.owner].name} · ${LV_NAME[x.level]} · 值 ${fmt(invested(x))}`, val: x.i
+      })), '取消');
+      if (v2 == null) return;
+      mineIdx = v1; theirs = S.tiles[v2];
+    }
+    const a = S.tiles[mineIdx], b = theirs;
+    const oa = S.players[a.owner], ob = S.players[b.owner];
+    oa.props = oa.props.filter(i => i !== a.i);
+    ob.props = ob.props.filter(i => i !== b.i);
+    a.owner = ob.id; ob.props.push(a.i);
+    b.owner = oa.id; oa.props.push(b.i);
+    used = true;
+    log(`🔄 <b>${p.name}</b> 用「${a.name}」换走了「${b.name}」`);
+    refreshTile(a.i); refreshTile(b.i); updateUI();
+  }
+
+  else if (id === 'reverse') {
+    p.dir *= -1;
+    used = true;
+    log(`↩️ <b>${p.name}</b> 调头，开始${p.dir > 0 ? '顺时针' : '逆时针'}前进`);
+  }
+
+  else if (id === 'turtle') {
+    const cand = S.players.filter(q => q.alive && q !== p);
+    if (!cand.length) return;
+    let q;
+    if (ai) q = pick(cand);
+    else {
+      const v = await chooseRows('乌龟卡', '让谁变成乌龟？2 回合只能走 1-2 步', cand.map(x => ({
+        icon: '🐢', name: x.name, sub: `现金 ${fmt(x.cash)}`, val: x.id
+      })), '取消');
+      if (v == null) return;
+      q = S.players[v];
+    }
+    q.turtle = 2; used = true;
+    log(`🐢 <b>${p.name}</b> 把 ${q.name} 变成了乌龟（2 回合）`);
+  }
+
+  else if (id === 'angel') {
+    p.angel = 3; used = true;
+    log(`😇 <b>${p.name}</b> 获得天使保护（3 回合免租）`);
+  }
+
+  if (used) {
+    p.items[id]--;
+    updateUI();
+    if (!ai && it) toast(`使用了「${it.name}」`);
+  }
+}
+
+/* ---------------- AI 用道具 ---------------- */
+async function aiUseItem(p) {
+  const owned = ITEMS.filter(it => (p.items[it.id] || 0) > 0).map(it => it.id);
+  if (!owned.length) return;
+  if (Math.random() > 0.5) return;
+  await useItem(p, pick(owned), true);
+  await sleep(200);
+}
+
+/* =====================================================================
+   神仙
+   ===================================================================== */
+function attachGod(p, id) {
+  if (p.god === id) { p.godLeft = GOD_TURNS; toast(`${GODS[id].name}继续跟着 ${p.name}`); return; }
+  if (p.god) log(`✨ ${GODS[p.god].name} 离开了 <b>${p.name}</b>`);
+  p.god = id; p.godLeft = GOD_TURNS;
+  log(`${GODS[id].icon} <b>${GODS[id].name}</b> 附身 <b>${p.name}</b>（${GOD_TURNS} 回合）：${GODS[id].desc}`);
+  toast(`${p.name} 被${GODS[id].name}附身`);
+  sfx.coin();
+  updateUI();
+}
+
+async function godTick(p) {
+  if (!p.god) return;
+  if (p.god === 'qiong') {
+    const loss = Math.max(300, Math.round(p.cash * 0.05));
+    await payMoney(p, loss);
+    log(`👺 穷神让 <b>${p.name}</b> 又赔了 ${fmt(loss)}`);
+  }
+  p.godLeft--;
+  if (p.godLeft <= 0) {
+    log(`✨ ${GODS[p.god].icon} ${GODS[p.god].name} 离开了 ${p.name}`);
+    p.god = null;
+    updateUI();
+  }
+}
+
+/* =====================================================================
+   股票 / 银行
+   ===================================================================== */
+function stockTick() {
+  S.stocks.forEach(s => {
+    const drift = (Math.random() - 0.46) * 0.15;
+    s.price = Math.max(8, Math.round(s.price * (1 + drift)));
+    s.hist.push(s.price);
+    if (s.hist.length > 14) s.hist.shift();
+  });
+}
+function buyStock(p, id, qty) {
+  const s = S.stocks.find(x => x.id === id);
+  const cost = s.price * qty;
+  if (p.cash < cost) return false;
+  p.cash -= cost;
+  p.stocks[id] = (p.stocks[id] || 0) + qty;
+  p.stockCost[id] = (p.stockCost[id] || 0) + cost;
+  updateUI();
+  return true;
+}
+function sellStock(p, id, qty) {
+  const s = S.stocks.find(x => x.id === id);
+  const held = p.stocks[id] || 0;
+  if (held < qty) return false;
+  const gained = s.price * qty;
+  const avg = (p.stockCost[id] || 0) / held;
+  p.stocks[id] = held - qty;
+  p.stockCost[id] = Math.max(0, (p.stockCost[id] || 0) - avg * qty);
+  p.cash += gained;
+  updateUI();
+  return true;
+}
+async function bankDialog(p) {
+  const v = await modal({
+    icon: '🏦', title: '银行',
+    html: `<p>存款每回合利息 <b>${Math.round(INTEREST * 100 * (p.charId === 'qian' ? 2 : 1))}%</b>，均富卡和查税都动不了存款。</p>
+      <table class="prop-table">
+        <tr><td>现金</td><td>${fmt(p.cash)}</td></tr>
+        <tr><td>存款</td><td>${fmt(p.savings)}</td></tr>
+      </table>`,
+    actions: [
+      {label: '存 $5,000', v: 'd5'}, {label: '存全部', v: 'dall'},
+      {label: '取 $5,000', v: 'w5'}, {label: '取全部', v: 'wall'},
+      {label: '离开', v: 0, cls: 'ghost'}
+    ]
+  });
+  if (v === 'd5') { const a = Math.min(5000, p.cash); p.cash -= a; p.savings += a; toast(`存入 ${fmt(a)}`); }
+  else if (v === 'dall') { p.savings += p.cash; toast(`存入 ${fmt(p.cash)}`); p.cash = 0; }
+  else if (v === 'w5') { const a = Math.min(5000, p.savings); p.savings -= a; p.cash += a; toast(`取出 ${fmt(a)}`); }
+  else if (v === 'wall') { p.cash += p.savings; toast(`取出 ${fmt(p.savings)}`); p.savings = 0; }
+  updateUI();
+}
+
+/* =====================================================================
+   回合与移动
+   ===================================================================== */
+function passGo(p, silent) {
+  let amt = PASS_GO;
+  if (p.god === 'cai') amt *= 2;
+  if (p.charId === 'tu') amt += 300;
+  if (p.charId === 'qian') amt += 500;
+  amt = Math.round(amt);
+  p.cash += amt;
+  p.pts += PASS_GO_PTS;
+  log(`🏁 <b>${p.name}</b> 经过起点，领取 ${fmt(amt)} + ${PASS_GO_PTS} 点数`);
+  if (!silent) { floatMoney(p, '+' + fmt(amt), '#ffe08a'); sfx.coin(); }
+  updatePlayersOnly();
+}
+
+async function moveSteps(p, steps, dir = 1) {
+  let hit = false;
+  for (let i = 0; i < steps; i++) {
+    p.pos = (p.pos + dir + N) % N;
+    if (dir > 0 && p.pos === 0) passGo(p);
+    renderPawns();
+    if (p._el) {
+      p._el.classList.add('moving');
+      setTimeout(() => p._el && p._el.classList.remove('moving'), 130);
+    }
+    await sleep(110);
+    const t = S.tiles[p.pos];
+    if (t.block != null) {
+      t.block = null; refreshTile(p.pos);
+      log(`🚧 <b>${p.name}</b> 被路障拦在「${t.name}」`);
+      toast('被路障拦住了！');
+      sfx.bad();
+      hit = true;
+      break;
+    }
+    if (t.mine != null) {
+      const ownerId = t.mine;
+      t.mine = null; refreshTile(p.pos);
+      const fine = p.charId === 'nin' ? 750 : 1500;
+      const turns = p.charId === 'nin' ? 2 : 3;
+      log(`💣 <b>${p.name}</b> 踩到地雷！住院 ${turns} 回合，赔偿 ${fmt(fine)}`);
+      sfx.bad(); toast('踩到地雷了！');
+      if (ownerId != null && S.players[ownerId]) await payMoney(p, fine, ownerId);
+      else await payMoney(p, fine);
+      p.hosp = turns;
+      hit = true;
+      break;
+    }
+  }
+  renderPawns();
+  return hit;
+}
+
+async function rollAndMove(p) {
+  S.busy = true; updateUI();
+  if (S.skipRoll) { S.skipRoll = false; S.busy = false; return; }
+  let total;
+  if (p.remote != null) {
+    total = p.remote; p.remote = null;
+    const a = Math.max(1, Math.floor(total / 2)), b = total - a;
+    await animateDice(a, b);
+  } else {
+    const a = 1 + rnd(6), b = 1 + rnd(6);
+    await animateDice(a, b);
+    total = a + b;
+  }
+  if (p.turtle > 0) {
+    total = 1 + rnd(2);
+    log(`🐢 <b>${p.name}</b> 被乌龟卡拖住，只走 ${total} 步`);
+  } else {
+    if (p.god === 'fu') total += 2;
+    if (p.god === 'shuai') total = Math.max(1, total - 1);
+  }
+  log(`🎲 <b>${p.name}</b> 掷出 <b style="color:#ffd76a">${total}</b> 点`);
+  await sleep(180);
+  const hit = await moveSteps(p, total, p.dir);
+  if (!hit) await resolveTile(p);
+  if (p.turtle > 0) { p.turtle--; if (p.turtle <= 0) log(`🐢 ${p.name} 恢复了正常速度`); }
+  if (p.angel > 0) p.angel--;
+  if (!S.over) checkEnd();
+  S.busy = false;
+  updateUI();
+}
+
+/* =====================================================================
+   落地事件
+   ===================================================================== */
+async function resolveTile(p, depth = 0) {
+  const t = S.tiles[p.pos];
+  await sleep(150);
+
+  if (isProp(t)) {
+    if (t.owner == null) await tryBuy(p, t);
+    else if (t.owner === p.id) await tryUpgrade(p, t);
+    else await payRent(p, t);
+    return;
+  }
+
+  switch (t.type) {
+    case 'start':
+      gain(p, 500); p.pts += 100;
+      log(`🏁 <b>${p.name}</b> 停在起点，额外奖励 $500 + 100 点数`);
+      break;
+    case 'tax': {
+      const tax = Math.max(900, Math.round(p.cash * 0.1));
+      log(`🧾 <b>${p.name}</b> 缴纳所得税 ${fmt(tax)}（进入停车奖池）`);
+      const ok = await payMoney(p, tax);
+      if (ok) { S.pot += tax; renderPark(); }
+      break;
+    }
+    case 'park': {
+      if (S.pot > 0) {
+        const pot = S.pot; S.pot = 0;
+        gain(p, pot);
+        log(`🅿️ <b>${p.name}</b> 领走停车奖池 ${fmt(pot)}！`);
+        if (!p.ai) await modal({icon: '🅿️', title: '免费停车', html: `<p>奖池里的 <b>${fmt(pot)}</b> 全归你了。</p>`, actions: [{label: '太棒了', v: 1}]});
+      } else {
+        log(`🅿️ <b>${p.name}</b> 免费停车，休息一下`);
+      }
+      renderPark();
+      break;
+    }
+    case 'jail':
+      log(`🚔 <b>${p.name}</b> 路过监狱，探个监`);
+      break;
+    case 'hospital':
+      log(`🏥 <b>${p.name}</b> 路过医院，探望病号`);
+      break;
+    case 'store': await visitStore(p); break;
+    case 'stock':
+      if (p.ai) await aiStock(p); else await stockDialog(p);
+      break;
+    case 'bank':
+      if (p.ai) await aiBank(p); else await bankDialog(p);
+      break;
+    case 'news': await doNews(p); break;
+    case 'temple': await visitTemple(p); break;
+    case 'chance':
+    case 'fate':
+      if (depth < 2) await drawCard(p, t.type);
+      break;
+  }
+  updateUI();
+}
+
+async function sendJail(p, turns = 2) {
+  const t = p.charId === 'nin' ? Math.max(1, turns - 1) : turns;
+  p.pos = 12;
+  p.jail = t;
+  renderPawns();
+  sfx.bad();
+  log(`🚔 <b>${p.name}</b> 被送进监狱，停 ${t} 回合${p.charId === 'nin' ? '（忍术减 1 回合）' : ''}`);
+  toast(`${p.name} 进监狱 ${t} 回合`);
+  updateUI();
+  await sleep(260);
+}
+async function sendHospital(p, turns = 3) {
+  const t = p.charId === 'nin' ? Math.max(1, turns - 1) : turns;
+  p.hosp = t;
+  sfx.bad();
+  log(`🏥 <b>${p.name}</b> 住院 ${t} 回合${p.charId === 'nin' ? '（忍术减 1 回合）' : ''}`);
+  toast(`${p.name} 住院 ${t} 回合`);
+  updateUI();
+  await sleep(260);
+}
+
+async function payRent(p, t) {  const owner = S.players[t.owner];
+  let rent = rentOf(t);
+  const notes = [];
+  if (p.god === 'angel' || p.angel > 0) { rent = 0; notes.push('天使护体'); }
+  else if (p.freePass) { p.freePass = false; rent = 0; notes.push('免费卡生效'); }
+  else {
+    if (p.charId === 'sha') { rent = Math.round(rent * 0.8); notes.push('谈判 -20%'); }
+    if (p.god === 'qiong') { rent = Math.round(rent * 2); notes.push('穷神 ×2'); }
+  }
+  if (rent <= 0) {
+    log(`🛡️ <b>${p.name}</b> 踩到「${t.name}」，${notes.join('、')}，一分钱没付`);
+    toast('免租金！');
+    return;
+  }
+  log(`🏠 <b>${p.name}</b> 踩到 <b style="color:${owner.color}">${owner.name}</b> 的「${t.name}」${LV_ICON[t.level]}，付租金 <b>${fmt(rent)}</b>${notes.length ? '（' + notes.join('、') + '）' : ''}`);
+  sfx.pay();
+  if (p.ai && rent > p.cash * 0.8) await sleep(300);
+  await payMoney(p, rent, owner.id);
+}
+
+async function tryBuy(p, t) {
+  const cost = buyCost(p, t);
+  if (p.cash < cost) {
+    if (!p.ai) toast(`钱不够：${t.name} 要 ${fmt(cost)}`);
+    return;
+  }
+  if (p.ai) {
+    if (aiWantsBuy(p, t)) { buy(p, t); await sleep(300); }
+    return;
+  }
+  const groupTiles = S.tiles.filter(x => isProp(x) && x.group === t.group);
+  const mine = groupTiles.filter(x => x.owner === p.id).length;
+  const ok = await modal({
+    icon: '🏙️', title: `买下「${t.name}」？`,
+    html: `<p>${GROUPS[t.group].name}地块 ${mine + 1}/${groupTiles.length}，集齐同色整组租金 <b>翻倍</b>。</p>
+      ${propTableHTML(t, p)}`,
+    actions: [{label: `买下 ${fmt(cost)}`, v: 1}, {label: '放弃', v: 0, cls: 'ghost'}]
+  });
+  if (ok) buy(p, t);
+}
+
+function buy(p, t) {
+  const cost = buyCost(p, t);
+  p.cash -= cost;
+  t.owner = p.id;
+  p.props.push(t.i);
+  log(`🏙️ <b>${p.name}</b> 买下「${t.name}」${fmt(cost)}`);
+  if (p._el) floatMoney(p, '-' + fmt(cost), '#ffd08a');
+  sfx.buy();
+  refreshTile(t.i);
+  updateUI();
+}
+
+async function tryUpgrade(p, t) {
+  if (t.level >= MAX_LV) { if (!p.ai) toast('已经是摩天楼啦'); return; }
+  if (p.god === 'tudi') {
+    upgrade(p, t, true);
+    log(`⛩️ 土地公显灵，免费升级`);
+    await sleep(300);
+    return;
+  }
+  const cost = upgCost(t);
+  if (p.cash < cost) { if (!p.ai) toast(`升级需要 ${fmt(cost)}`); return; }
+  if (p.ai) {
+    const reserve = 3000 + p.props.length * 400;
+    if (p.cash - cost > reserve && Math.random() < 0.9) { upgrade(p, t); await sleep(280); }
+    return;
+  }
+  const before = rentOf(t);
+  const after = Math.round(t.price * RENT[t.level + 1] * (ownsGroup(p.id, t.group) ? 2 : 1) * (S.rentMod || 1));
+  const ok = await modal({
+    icon: '🏗️', title: `升级「${t.name}」？`,
+    html: `<p>${LV_NAME[t.level]} → <b>${LV_NAME[t.level + 1]}</b>，租金从 ${fmt(before)} 涨到 <b>${fmt(after)}</b>。</p>
+      ${propTableHTML(t, p)}`,
+    actions: [{label: `升级 ${fmt(cost)}`, v: 1}, {label: '先不升', v: 0, cls: 'ghost'}]
+  });
+  if (ok) upgrade(p, t);
+}
+
+function upgrade(p, t, free) {
+  const cost = free ? 0 : upgCost(t);
+  p.cash -= cost;
+  t.level++;
+  log(`🏗️ <b>${p.name}</b> 把「${t.name}」升级为 <b>${LV_NAME[t.level]}</b>${cost ? `（-${fmt(cost)}）` : '（免费）'}`);
+  if (!free && p._el) floatMoney(p, '-' + fmt(cost), '#ffd08a');
+  sfx.buy();
+  refreshTile(t.i);
+  updateUI();
+}
+
+/* ---------------- 道具店 ---------------- */
+async function visitStore(p) {
+  if (p.ai) { await aiStore(p); return; }
+  for (let guard = 0; guard < 8; guard++) {
+    const rows = ITEMS.map(it => ({
+      icon: it.icon, name: it.name, sub: it.desc + `（持有 ${p.items[it.id] || 0}）`,
+      val: it.id, right: `💎 ${it.cost}`, disabled: p.pts < it.cost
+    }));
+    const v = await chooseRows(`道具店 · 你有 💎 ${p.pts} 点数`, '点数靠经过起点和事件获得，道具是翻盘关键', rows, '离开商店');
+    if (v == null) return;
+    const it = ITEM_MAP[v];
+    if (p.pts < it.cost) { toast('点数不够'); continue; }
+    p.pts -= it.cost;
+    addItem(p, v, 1);
+    log(`🛒 <b>${p.name}</b> 花 ${it.cost} 点数买了「${it.name}」`);
+    sfx.buy();
+    updateUI();
+  }
+}
+async function aiStore(p) {
+  let guard = 0;
+  while (p.pts >= 80 && guard++ < 4) {
+    const affordable = ITEMS.filter(it => it.cost <= p.pts);
+    if (!affordable.length) break;
+    const it = pick(affordable);
+    p.pts -= it.cost;
+    addItem(p, it.id, 1);
+    log(`🛒 <b>${p.name}</b> 花 ${it.cost} 点数买了「${it.name}」`);
+    await sleep(180);
+  }
+}
+
+/* ---------------- 股票 ---------------- */
+async function aiStock(p) {
+  if (p.cash > 12000 && Math.random() < 0.75) {
+    const cheap = [...S.stocks].sort((a, b) => a.price - b.price)[0];
+    const qty = Math.min(300, Math.floor((p.cash * 0.25) / cheap.price / 100) * 100) || 100;
+    if (buyStock(p, cheap.id, qty)) log(`📈 <b>${p.name}</b> 买入 ${cheap.name}股 ${qty} 股`);
+  } else {
+    for (const s of S.stocks) {
+      const held = p.stocks[s.id] || 0;
+      if (held > 0) {
+        const avg = (p.stockCost[s.id] || 0) / held;
+        if (s.price > avg * 1.15 && sellStock(p, s.id, held)) log(`📉 <b>${p.name}</b> 卖掉 ${s.name}股获利`);
+      }
+    }
+  }
+  await sleep(240);
+}
+async function aiBank(p) {
+  if (p.cash > 14000) { const a = p.cash - 8000; p.cash -= a; p.savings += a; log(`🏦 <b>${p.name}</b> 存了 ${fmt(a)} 进银行`); }
+  else if (p.cash < 3000 && p.savings > 0) { const a = Math.min(p.savings, 6000); p.savings -= a; p.cash += a; log(`🏦 <b>${p.name}</b> 从银行取出 ${fmt(a)}`); }
+  await sleep(220);
+}
+
+/* ---------------- 土地庙 ---------------- */
+async function visitTemple(p) {
+  if (p.ai) {
+    if (p.pts >= 60 && Math.random() < 0.75) {
+      p.pts -= 60;
+      attachGod(p, pick(['cai', 'tudi', 'fu', 'angel']));
+    }
+    await sleep(200);
+    return;
+  }
+  const v = await modal({
+    icon: '⛩️', title: '土地庙',
+    html: `<p>花 <b>60 点数</b> 求一位吉神附身（随机，持续 ${GOD_TURNS} 回合）。<br>你现在有 <b>${p.pts}</b> 点数。</p>`,
+    actions: [{label: '上香祈福', v: 1}, {label: '下次吧', v: 0, cls: 'ghost'}]
+  });
+  if (v) {
+    if (p.pts < 60) { toast('点数不够'); return; }
+    p.pts -= 60;
+    attachGod(p, pick(['cai', 'tudi', 'fu', 'angel']));
+    updateUI();
+  }
+}
+
+/* ---------------- 新闻 ---------------- */
+async function doNews(p) {
+  const n = pick(NEWS);
+  let extra = null;
+  try { extra = n.fn ? n.fn() : null; } catch (e) {}
+  S.news = `${n.title}：${n.text}`;
+  log(`📰 <b>新闻</b> ${n.title} —— ${n.text}${extra ? '（' + extra + '）' : ''}`);
+  if (!p.ai) {
+    await modal({
+      icon: '📰', title: '今日新闻 · ' + n.title,
+      html: `<p>${n.text}${extra ? '<br><b>' + extra + '</b>' : ''}</p>`,
+      actions: [{label: '知道了', v: 1}]
+    });
+  } else await sleep(380);
+  updateUI();
+}
+
+/* ---------------- 卡片 ---------------- */
+async function drawCard(p, kind) {
+  const deck = kind === 'chance' ? CHANCE_CARDS : FATE_CARDS;
+  let c = pick(deck);
+  const lucky = (p.god === 'fu');
+  const immune = (p.god === 'angel' || p.angel > 0);
+  if (lucky && c.bad && Math.random() < 0.5) c = pick(deck.filter(x => !x.bad));
+  const blocked = immune && c.bad;
+  if (!p.ai) {
+    await modal({
+      icon: c.icon, title: c.title,
+      html: `<p>${c.text}</p>${blocked ? '<p style="color:#2f8a5e;font-weight:800;margin-top:6px">天使护体，这次免了！</p>' : ''}`,
+      actions: [{label: '继续', v: 1}], kind
+    });
+  } else {
+    toast(`${p.name} 抽到「${c.title}」`);
+    await sleep(320);
+  }
+  log(`${kind === 'chance' ? '🎁' : '🔮'} <b>${p.name}</b> 抽到「${c.title}」${blocked ? '（被天使挡下）' : ''}`);
+  if (!blocked) await c.fn(p);
+  updateUI();
+}
+
+/* =====================================================================
+   AI 决策
+   ===================================================================== */
+function aiWantsBuy(p, t) {
+  const cost = buyCost(p, t);
+  if (p.cash < cost) return false;
+  const groupTiles = S.tiles.filter(x => isProp(x) && x.group === t.group);
+  const mine = groupTiles.filter(x => x.owner === p.id).length;
+  let reserve = 2600 + p.props.length * 260;
+  if (mine > 0) reserve = 1200;                 // 能凑齐一组，咬牙也买
+  if (p.props.length === 0) reserve = 600;
+  return p.cash - cost > reserve;
+}
+
+/* =====================================================================
+   回合流程
+   ===================================================================== */
+function startRound() {
+  S.round++;
+  stockTick();
+  // 利息（用上一回合新闻的利率修正）
+  S.players.forEach(p => {
+    if (!p.alive || p.savings <= 0) return;
+    const rate = INTEREST * (p.charId === 'qian' ? 2 : 1) * (S.interestMod || 1);
+    const interest = Math.round(p.savings * rate);
+    if (interest > 0) {
+      p.savings += interest;
+      log(`🏦 <b>${p.name}</b> 收到存款利息 ${fmt(interest)}`);
+    }
+  });
+  S.rentMod = 1;
+  S.interestMod = 1;
+  log(`—— 第 ${Math.min(S.round, MAX_ROUNDS)} 回合 ——`);
+  if (Math.random() < 0.22) {
+    const cand = S.players.filter(p => p.alive && !p.god);
+    if (cand.length) attachGod(pick(cand), pick(Object.keys(GODS)));
+  }
+  updateUI();
+}
+
+async function playTurn(p) {
+  S.busy = true;
+  if (S.turnCount >= S.turnCap) { S.stopped = true; S.busy = false; return; }
+  S.turnCount++;
+  updateUI();
+  await godTick(p);
+
+  if (p.jail > 0) {
+    p.jail--;
+    log(`🚔 <b>${p.name}</b> 在监狱反省（还剩 ${p.jail} 回合）`);
+    await sleep(500);
+    S.busy = false; updateUI();
+    return;
+  }
+  if (p.hosp > 0) {
+    p.hosp--;
+    log(`🏥 <b>${p.name}</b> 住院观察（还剩 ${p.hosp} 回合）`);
+    await sleep(500);
+    S.busy = false; updateUI();
+    return;
+  }
+  if (p.charId === 'wu' && Math.random() < 0.28) {
+    const it = pick(ITEMS);
+    addItem(p, it.id, 1);
+    log(`🐱 <b>${p.name}</b> 顺手捡到「${it.name}」`);
+  }
+
+  if (p.ai) {
+    await sleep(340);
+    if (S.itemSpam) {
+      ITEMS.forEach(it => { p.items[it.id] = 3; });
+      for (let k = 0; k < 3; k++) await useItem(p, pick(ITEMS).id, true);
+    }
+    await aiUseItem(p);
+  } else {
+    S.awaitRoll = true;
+    S.busy = false;
+    updateUI();
+    await new Promise(r => { S.rollResolve = r; });
+    S.awaitRoll = false;
+    S.rollResolve = null;
+    S.busy = true;
+    updateUI();
+  }
+  await rollAndMove(p);
+  S.busy = false;
+  updateUI();
+}
+
+function advanceTurn() {
+  if (S.over) return;
+  let guard = 0;
+  do {
+    S.cur = (S.cur + 1) % S.players.length;
+    if (S.cur === 0) {
+      startRound();
+      if (S.round > MAX_ROUNDS) { endByAssets(); return; }
+    }
+    guard++;
+  } while (!S.players[S.cur].alive && guard < 12);
+  updateUI();
+}
+
+async function gameLoop() {
+  while (!S.over && !S.stopped) {
+    const p = S.players[S.cur];
+    if (p.alive) await playTurn(p);
+    if (S.over || S.stopped) break;
+    advanceTurn();
+    await sleep(90);
+  }
+}
+
+/* =====================================================================
+   结束
+   ===================================================================== */
+function checkEnd() {
+  const alive = S.players.filter(p => p.alive);
+  if (alive.length <= 1) endGame(alive[0] || null);
+}
+function endGame(winner) {
+  if (S.over) return;
+  S.over = true;
+  S.winner = winner;
+  sfx.win();
+  showResult('游戏结束', winner ? `<b>${winner.name}</b> 把对手全部熬破产了！` : '所有人都破产了…');
+}
+function endByAssets() {
+  if (S.over) return;
+  S.over = true;
+  const sorted = [...S.players].filter(p => p.alive).sort((a, b) => totalAssets(b) - totalAssets(a));
+  S.winner = sorted[0];
+  showResult(`${MAX_ROUNDS} 回合结束`, `总资产最高的是 <b>${sorted[0].name}</b>！`);
+}
+
+/* =====================================================================
+   开局
+   ===================================================================== */
+function startGame(count, myCharId, allAI) {
+  S = {
+    players: [],
+    tiles: TILES.map((t, i) => ({...t, i, owner: null, level: 0, block: null, mine: null})),
+    stocks: STOCK_DEFS.map(s => ({...s, price: s.base, hist: [s.base, s.base]})),
+    cur: 0, round: 1, pot: 0, over: false, busy: false, awaitRoll: false,
+    turnCount: 0, turnCap: 9999, stopped: false, winner: null, rollResolve: null,
+    skipRoll: false, rentMod: 1, interestMod: 1, news: '', me: 0, itemSpam: false
+  };
+  const order = allAI ? CHARS : [CHARS.find(c => c.id === myCharId) || CHARS[0], ...CHARS.filter(c => c.id !== myCharId)];
+  for (let i = 0; i < count; i++) {
+    const c = order[i];
+    S.players.push({
+      id: i, charId: c.id, name: c.name, color: c.color,
+      cash: START_CASH, savings: 0, pts: 0, pos: 0, dir: 1, props: [],
+      stocks: {tech: 0, land: 0, bank: 0, oil: 0}, stockCost: {tech: 0, land: 0, bank: 0, oil: 0},
+      items: {}, jail: 0, hosp: 0, turtle: 0, angel: 0, god: null, godLeft: 0,
+      freePass: false, remote: null, alive: true, ai: allAI ? true : i !== 0, _el: null
+    });
+  }
+  S.me = allAI ? 0 : 0;
+  $('log').innerHTML = '';
+  buildCenterBadge();
+  renderAllTiles();
+  renderPawns();
+  updateUI();
+  log(`🎮 游戏开始！每人 ${fmt(START_CASH)}，${count} 位玩家，${MAX_ROUNDS} 回合`);
+  toast('先买地、再盖楼，别忘了炒股和道具');
+  S.loop = gameLoop();
+}
+
+
+/* =====================================================================
+   大富翁 4Fun · 复刻版 —— 界面层
+   ===================================================================== */
+
+const CELL = 58;
+let tileEls = [];
+const boardEl = $('board'), pawnsEl = $('pawns'), logEl = $('log');
+
+/* ---------------- 头像 ---------------- */
+function avatarSVG(id) {
+  const base = (skin, hair, extra) => `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <defs><linearGradient id="bg${id}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#ffe9c9"/><stop offset="1" stop-color="#f6cf9e"/></linearGradient></defs>
+      <rect width="64" height="64" fill="url(#bg${id})"/>
+      <circle cx="32" cy="35" r="21" fill="${skin}"/>
+      ${hair}${extra}
+    </svg>`;
+  if (id === 'mei') return base('#ffe3cf', `
+      <path d="M11 34a21 21 0 0 1 42 0c0 3-2 5-4 3-4-6-11-8-17-8s-13 2-17 8c-2 2-4 0-4-3z" fill="#4a2f28"/>
+      <circle cx="12" cy="35" r="7" fill="#4a2f28"/><circle cx="52" cy="35" r="7" fill="#4a2f28"/>
+      <circle cx="12" cy="35" r="3.2" fill="#e86a9a"/><circle cx="52" cy="35" r="3.2" fill="#e86a9a"/>`, `
+      <path d="M18 14l6 6-6 4-4-6z" fill="#e86a9a"/><path d="M46 14l-6 6 6 4 4-6z" fill="#e86a9a"/>
+      <circle cx="25" cy="35" r="2.6" fill="#2b1d18"/><circle cx="39" cy="35" r="2.6" fill="#2b1d18"/>
+      <circle cx="25.6" cy="34.2" r=".9" fill="#fff"/><circle cx="39.6" cy="34.2" r=".9" fill="#fff"/>
+      <path d="M28 42q4 4 8 0" stroke="#b04f6e" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+      <circle cx="20" cy="40" r="3" fill="#ffb3c8" opacity=".7"/><circle cx="44" cy="40" r="3" fill="#ffb3c8" opacity=".7"/>`);
+  if (id === 'tu') return base('#f3d3b3', `
+      <ellipse cx="32" cy="21" rx="26" ry="7" fill="#e0b45c"/>
+      <path d="M14 21q3-12 18-12t18 12z" fill="#f0c983"/>
+      <path d="M14 21h36" stroke="#b98b3c" stroke-width="2.4"/>`, `
+      <path d="M20 34q4-2.5 8 0M36 34q4-2.5 8 0" stroke="#3a2a1e" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <path d="M25 43q7 4 14 0" stroke="#8a5a3a" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+      <path d="M28 44q2 5 4 5t4-5" fill="#7a5030"/>
+      <circle cx="19" cy="39" r="3" fill="#e8a07a" opacity=".6"/><circle cx="45" cy="39" r="3" fill="#e8a07a" opacity=".6"/>`);
+  if (id === 'qian') return base('#ffe0c8', `
+      <path d="M11 36a21 21 0 0 1 42 0v4c-6-8-14-10-21-10s-15 2-21 10z" fill="#6b4a8a"/>
+      <circle cx="32" cy="12" r="9" fill="#6b4a8a"/><circle cx="32" cy="12" r="4" fill="#9a6bd0"/>`, `
+      <circle cx="25" cy="35" r="2.5" fill="#2b1d18"/><circle cx="39" cy="35" r="2.5" fill="#2b1d18"/>
+      <circle cx="25.6" cy="34.2" r=".9" fill="#fff"/><circle cx="39.6" cy="34.2" r=".9" fill="#fff"/>
+      <path d="M28 42q4 3.4 8 0" stroke="#c0392b" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <circle cx="21" cy="47" r="2" fill="#fff"/><circle cx="26" cy="48.5" r="2" fill="#fff"/>
+      <circle cx="32" cy="49.5" r="2" fill="#fff"/><circle cx="38" cy="48.5" r="2" fill="#fff"/><circle cx="43" cy="47" r="2" fill="#fff"/>
+      <circle cx="14" cy="40" r="1.8" fill="#ffd76a"/><circle cx="50" cy="40" r="1.8" fill="#ffd76a"/>`);
+  if (id === 'sha') return base('#e8c39e', `
+      <path d="M10 30q2-16 22-16t22 16q-6-3-22-3T10 30z" fill="#e8913c"/>
+      <path d="M12 27q20-9 40 0" stroke="#b96a22" stroke-width="2" fill="none"/>
+      <circle cx="32" cy="12" r="4.5" fill="#f7b267"/>`, `
+      <circle cx="25" cy="36" r="2.5" fill="#2b1d18"/><circle cx="39" cy="36" r="2.5" fill="#2b1d18"/>
+      <path d="M24 42q8 9 16 0-4 12-8 12t-8-12z" fill="#4a3520"/>
+      <path d="M27 41q5 2.5 10 0" stroke="#2b1d18" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <circle cx="18" cy="40" r="3" fill="#d99b6a" opacity=".6"/>`);
+  if (id === 'nin') return base('#f0d0b0', `
+      <path d="M11 32a21 21 0 0 1 42 0v3H11z" fill="#2d4a52"/>
+      <rect x="9" y="31" width="46" height="7" rx="3" fill="#1f3a42"/>
+      <path d="M35 17q9 6 9 16" stroke="#3f8c95" stroke-width="3" fill="none"/>
+      <circle cx="46" cy="14" r="5" fill="#2d4a52"/>`, `
+      <rect x="16" y="32" width="32" height="8" rx="3" fill="#20323a"/>
+      <circle cx="25" cy="36" r="2.4" fill="#dff6ff"/><circle cx="39" cy="36" r="2.4" fill="#dff6ff"/>
+      <path d="M26 46q6 3 12 0" stroke="#8a5a3a" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M14 22l6 10" stroke="#2d4a52" stroke-width="2.5" stroke-linecap="round"/>`);
+  if (id === 'wu') return base('#ffe6d8', `
+      <path d="M10 34a22 22 0 0 1 44 0c0 3-3 4-5 2-5-6-11-8-17-8s-12 2-17 8c-2 2-5 1-5-2z" fill="#c98d2e"/>
+      <path d="M14 26l-4-9 9 3z" fill="#c98d2e"/><path d="M50 26l4-9-9 3z" fill="#c98d2e"/>`, `
+      <path d="M17 26l3-9 4 8z" fill="#e8b25c"/><path d="M47 26l-3-9-4 8z" fill="#e8b25c"/>
+      <circle cx="25" cy="35" r="3.2" fill="#2b1d18"/><circle cx="39" cy="35" r="3.2" fill="#2b1d18"/>
+      <circle cx="26" cy="34" r="1.2" fill="#8fe3c5"/><circle cx="40" cy="34" r="1.2" fill="#8fe3c5"/>
+      <path d="M28 42q4 3.4 8 0" stroke="#c0392b" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M20 40h-8M20 43h-7M44 40h8M44 43h7" stroke="#c98d2e" stroke-width="1.2" opacity=".8"/>`);
+  return base('#e8c39e', '', '');
+}
+
+/* ---------------- 棋盘几何 ---------------- */
+function gridPos(i) {
+  if (i === 0) return {c: 13, r: 13};
+  if (i < 12) return {c: 13 - i, r: 13};
+  if (i === 12) return {c: 1, r: 13};
+  if (i < 24) return {c: 1, r: 13 - (i - 12)};
+  if (i === 24) return {c: 1, r: 1};
+  if (i < 36) return {c: 1 + (i - 24), r: 1};
+  if (i === 36) return {c: 13, r: 1};
+  return {c: 13, r: 1 + (i - 36)};
+}
+function tileCenter(i) {
+  const g = gridPos(i);
+  return {x: (g.c - .5) * CELL, y: (g.r - .5) * CELL};
+}
+const PAWN_OFF = [[0, -7], [-9, 3], [9, 3], [0, 10]];
+
+/* ---------------- 格子内容 ---------------- */
+const CORNER = {
+  start:    ['🏁', '起点', '过路 +2000'],
+  jail:     ['🚔', '监狱', '探监'],
+  hospital: ['🏥', '医院', '探病'],
+  park:     ['🅿️', '停车场', '领奖池'],
+};
+const SPEC = {
+  chance: ['🎁', '机会'],
+  fate:   ['🔮', '命运'],
+  tax:    ['🧾', '税务局'],
+  store:  ['🛒', '道具店'],
+  stock:  ['📈', '证券交易所'],
+  news:   ['📰', '新闻'],
+  bank:   ['🏦', '银行'],
+  temple: ['⛩️', '土地庙'],
+};
+
+function cornerHTML(t) {
+  const m = CORNER[t.type] || ['❓', t.name, ''];
+  return `<div class="cicon">${m[0]}</div><div class="cname">${m[1]}</div><div class="csub">${m[2]}</div>`;
+}
+function tileHTML(t) {
+  if (isCorner(t.type)) return cornerHTML(t);
+  if (isProp(t)) {
+    return `<div class="tint" style="background:${GROUPS[t.group].color};opacity:.06"></div>
+      <div class="band" style="background:${GROUPS[t.group].color}"></div>
+      <div class="tname ${t.name.length >= 4 ? 'sm' : ''}">${t.name}</div>
+      <div class="tprice">$${t.price}</div>
+      <div class="dyn"></div>`;
+  }
+  const s = SPEC[t.type] || ['❓', t.name];
+  return `<div class="sicon">${s[0]}</div><div class="sname">${s[1]}</div><div class="dyn"></div>`;
+}
+
+function buildBoard() {
+  TILES.forEach((t, i) => {
+    const g = gridPos(i);
+    const el = document.createElement('div');
+    el.className = 'tile' + (isCorner(t.type) ? ' corner' : '') + (isProp(t) ? '' : (t.type === 'start' ? '' : ' ' + t.type));
+    el.style.gridColumn = g.c;
+    el.style.gridRow = g.r;
+    el.dataset.i = i;
+    el.innerHTML = tileHTML(t);
+    el.onclick = () => showTileInfo(i);
+    boardEl.appendChild(el);
+    tileEls[i] = el;
+  });
+  buildCenterBadge();
+}
+
+function buildCenterBadge() {
+  [0, 12, 24, 36].forEach(i => {
+    const el = tileEls[i];
+    if (!el) return;
+    el.classList.add('corner');
+    el.innerHTML = cornerHTML((S ? S.tiles : TILES)[i]);
+  });
+}
+
+function refreshTile(i) {
+  const t = (S ? S.tiles : TILES)[i];
+  const el = tileEls[i];
+  if (!el || !t) return;
+  if (isProp(t)) {
+    const dyn = el.querySelector('.dyn');
+    if (dyn) {
+      if (t.owner != null && S) {
+        const p = S.players[t.owner];
+        dyn.innerHTML = `<div class="own" style="background:${p.color}">${LV_ICON[t.level] || ''}</div>`;
+      } else dyn.innerHTML = '';
+    }
+    el.classList.toggle('lvmax', t.level >= MAX_LV);
+    el.classList.toggle('glow', !!(S && S.players[S.cur] && t.owner === S.players[S.cur].id && !S.over));
+  }
+  el.querySelectorAll('.hazard').forEach(n => n.remove());
+  if (t.block != null) el.insertAdjacentHTML('beforeend', '<div class="hazard">🚧</div>');
+  else if (t.mine != null) el.insertAdjacentHTML('beforeend', '<div class="hazard">💣</div>');
+}
+function renderAllTiles() { for (let i = 0; i < N; i++) refreshTile(i); renderPark(); }
+function renderPark() {
+  const el = tileEls[36];
+  if (!el) return;
+  let potEl = el.querySelector('.pot');
+  if (!potEl) { potEl = document.createElement('div'); potEl.className = 'pot'; el.appendChild(potEl); }
+  potEl.textContent = S && S.pot > 0 ? '$' + S.pot : '';
+  potEl.style.display = S && S.pot > 0 ? 'block' : 'none';
+}
+
+/* ---------------- 棋子 ---------------- */
+function renderPawns() {
+  if (!S) return;
+  pawnsEl.innerHTML = '';
+  const byPos = {};
+  S.players.forEach(p => { if (p.alive) (byPos[p.pos] = byPos[p.pos] || []).push(p); });
+  S.players.forEach((p, idx) => {
+    if (!p.alive) return;
+    const list = byPos[p.pos];
+    const k = list.indexOf(p);
+    const off = PAWN_OFF[k % 4];
+    const c = tileCenter(p.pos);
+    const el = document.createElement('div');
+    el.className = 'pawn' + (S.cur === idx && !S.over ? ' turn' : '');
+    el.innerHTML = avatarSVG(p.charId);
+    el.style.transform = `translate3d(${c.x - 13 + off[0]}px, ${c.y - 13 + off[1]}px, 0)`;
+    el.style.zIndex = String(20 + k);
+    pawnsEl.appendChild(el);
+    p._el = el;
+  });
+}
+
+/* ---------------- 玩家面板 ---------------- */
+function badgesHTML(p) {
+  let h = '';
+  if (p.jail > 0) h += `<span class="badge jail">牢 ${p.jail}</span>`;
+  if (p.hosp > 0) h += `<span class="badge hosp">院 ${p.hosp}</span>`;
+  if (p.god) h += `<span class="badge god ${GODS[p.god].good ? '' : 'bad'}">${GODS[p.god].icon}${GODS[p.god].name} ${p.godLeft}</span>`;
+  if (p.turtle > 0) h += `<span class="badge turtle">🐢${p.turtle}</span>`;
+  if (p.angel > 0) h += `<span class="badge angel">😇${p.angel}</span>`;
+  return h;
+}
+function playerCardHTML(p, idx) {
+  const isAct = S && S.cur === idx && !S.over && p.alive;
+  const props = p.props.map(ti => `<span class="dot" style="background:${GROUPS[S.tiles[ti].group].color}"></span>`).join('');
+  return `<div class="pcard ${isAct ? 'act' : ''} ${p.alive ? '' : 'dead'}">
+    <div class="av">${avatarSVG(p.charId)}</div>
+    <div class="pinfo">
+      <div class="prow1">
+        <span class="pname" style="color:${p.color}">${p.name}</span>
+        <span class="pcash">${fmt(p.cash)}</span>
+      </div>
+      <div class="prow2">
+        <span>💎<b>${p.pts}</b></span>
+        <span>🏦<b>${fmt(p.savings)}</b></span>
+        <span>📈<b>${fmt(stockValue(p))}</b></span>
+        <span>🏠<b>${p.props.length}</b></span>
+      </div>
+      <div class="prow3">
+        <span class="dots">${props || '<span style="opacity:.45;font-size:9px">暂无地产</span>'}</span>
+        <span>${badgesHTML(p)}</span>
+      </div>
+    </div>
+    ${isAct ? '<div class="medal">▶</div>' : ''}
+  </div>`;
+}
+function renderPlayers() {
+  if (!S) return;
+  $('players').innerHTML = S.players.map((p, i) => playerCardHTML(p, i)).join('');
+}
+function renderItems() {
+  if (!S) return;
+  const p = S.players[S.me];
+  if (!p) return;
+  $('ptsChip').textContent = '💎 ' + p.pts;
+  $('itemgrid').innerHTML = ITEMS.map(it => {
+    const n = p.items[it.id] || 0;
+    return `<button class="it ${n ? '' : 'empty'}" data-item="${it.id}" title="${it.name}：${it.desc}${n ? '' : '（未拥有）'}">
+      <span class="ic">${it.icon}</span><span class="nm">${it.name}</span>
+      ${n ? `<span class="ct">${n}</span>` : ''}</button>`;
+  }).join('');
+  $('itemgrid').querySelectorAll('[data-item]').forEach(b => {
+    b.onclick = () => {
+      const id = b.dataset.item;
+      if (!(p.items[id] > 0)) { toast(`没有「${ITEM_MAP[id].name}」，去道具店用点数换`); return; }
+      useItem(p, id);
+    };
+  });
+}
+function renderMarket() {
+  if (!S) return;
+  const el = $('market');
+  if (!el) return;
+  el.innerHTML = S.stocks.map(s => {
+    const prev = s.hist.length > 1 ? s.hist[s.hist.length - 2] : s.price;
+    const up = s.price >= prev;
+    const pct = Math.round((s.price - prev) / Math.max(1, prev) * 100);
+    return `<div class="mkt ${up ? 'up' : 'down'}" data-stk="1">
+      <span class="mk-n">${s.name}</span>
+      <span class="mk-p">${fmt(s.price)}</span>
+      <span class="mk-a">${up ? '▲' : '▼'}${Math.abs(pct)}%</span>
+    </div>`;
+  }).join('');
+  el.querySelectorAll('[data-stk]').forEach(b => {
+    b.onclick = () => { if (S && S.players[S.me]) stockDialog(S.players[S.me]); };
+  });
+}
+function renderGodbar() {
+  const p = S && S.players[S.cur];
+  if (!p) return;
+  let h = '';
+  if (p.god) h += `<span class="god-chip ${GODS[p.god].good ? '' : 'bad'}">${GODS[p.god].icon} ${GODS[p.god].name} · ${p.godLeft}</span>`;
+  if (p.angel > 0) h += `<span class="god-chip">😇 天使护体 ${p.angel}</span>`;
+  if (p.turtle > 0) h += `<span class="god-chip bad">🐢 减速 ${p.turtle}</span>`;
+  if (p.freePass) h += `<span class="god-chip">🎫 免租待用</span>`;
+  if (p.dir < 0) h += `<span class="god-chip">↩️ 逆向</span>`;
+  $('godbar').innerHTML = h;
+  $('newsline').textContent = S.news ? '📰 ' + S.news : '';
+}
+
+/* ---------------- 顶栏 ---------------- */
+function updateBadge() {
+  if (!S) return;
+  const p = S.players[S.cur];
+  if (!p) return;
+  $('badgeAv').innerHTML = avatarSVG(p.charId);
+  $('badgeNm').textContent = p.name + (p.ai ? '（电脑）' : '（你）');
+  $('badgeNm').style.color = p.color;
+  $('badgeCash').textContent = `${fmt(p.cash)} · 💎${p.pts} · 第 ${Math.min(S.round, MAX_ROUNDS)} 回合`;
+  $('rollBtn').disabled = !(S.awaitRoll && !S.busy && S.players[S.cur] === p);
+  $('roundTip').textContent = `第 ${Math.min(S.round, MAX_ROUNDS)} / ${MAX_ROUNDS} 回合`;
+}
+function updatePlayersOnly() {
+  if (!S) return;
+  renderPlayers(); updateBadge(); renderItems(); renderGodbar(); renderMarket();
+}
+function updateUI() {
+  if (!S) return;
+  renderPlayers(); updateBadge(); renderAllTiles(); renderItems(); renderGodbar(); renderMarket();
+}
+
+function log(html) {
+  const div = document.createElement('div');
+  div.className = 'ln';
+  div.innerHTML = html;
+  logEl.appendChild(div);
+  logEl.scrollTop = logEl.scrollHeight;
+  while (logEl.children.length > 80) logEl.removeChild(logEl.firstChild);
+  $('ticker').innerHTML = html;
+}
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove('on'), 1800);
+}
+function floatMoney(p, text, color) {
+  if (!p._el) return;
+  const r = p._el.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = 'float';
+  el.textContent = text;
+  el.style.color = color || '#ffe9a8';
+  el.style.left = (r.left + r.width / 2) + 'px';
+  el.style.top = (r.top - 6) + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1100);
+}
+
+/* ---------------- 骰子 ---------------- */
+const PIPS = {1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8]};
+function initDie() {
+  ['die1', 'die2'].forEach(id => {
+    const d = $(id);
+    d.innerHTML = Array.from({length: 9}, () => '<span class="pip"></span>').join('');
+    setDie(d, 3);
+  });
+}
+function setDie(el, v) {
+  el.querySelectorAll('.pip').forEach((p, i) => p.classList.toggle('on', PIPS[v].includes(i)));
+}
+async function animateDice(a, b) {
+  const d1 = $('die1'), d2 = $('die2');
+  d1.classList.add('rolling'); d2.classList.add('rolling');
+  const t0 = Date.now();
+  while (Date.now() - t0 < 420 * SPEED) {
+    setDie(d1, 1 + rnd(6)); setDie(d2, 1 + rnd(6));
+    await sleep(60);
+  }
+  d1.classList.remove('rolling'); d2.classList.remove('rolling');
+  setDie(d1, a); setDie(d2, b);
+  sfx.dice();
+}
+
+/* ---------------- 弹窗 ---------------- */
+function modal({icon, title, html, actions, extra, kind}) {
+  return new Promise(resolve => {
+    const ovl = $('ovl'), panel = $('panel');
+    const acts = actions || [{label: '确定', v: 1}];
+    panel.className = 'panel' + (kind ? ' kind-' + kind : '');
+    panel.innerHTML = `
+      ${kind ? `<div class="card-ribbon">${kind === 'chance' ? '机 会' : '命 运'}</div>` : ''}
+      <div class="pic">${icon || '❓'}</div>
+      <h3>${title}</h3>
+      <div>${html || ''}</div>
+      ${extra || ''}
+      <div class="acts">${acts.map((a, i) =>
+        `<button class="btn ${a.cls || 'gold'}" data-i="${i}">${a.label}</button>`).join('')}</div>`;
+    ovl.classList.add('show');
+    panel.querySelectorAll('[data-i]').forEach(b => {
+      b.onclick = () => {
+        ovl.classList.remove('show');
+        resolve(acts[+b.dataset.i].v);
+      };
+    });
+  });
+}
+
+function chooseRows(title, sub, rows, cancelLabel = '取消') {
+  return new Promise(resolve => {
+    const ovl = $('ovl'), panel = $('panel');
+    panel.className = 'panel';
+    panel.innerHTML = `<h3>${title}</h3>${sub ? `<p style="margin-bottom:4px">${sub}</p>` : ''}
+      <div class="pick-list">${rows.map((r, i) => `
+        <button class="pick-row" data-i="${i}" ${r.disabled ? 'disabled' : ''}>
+          <span class="pi">${r.icon || '•'}</span>
+          <span class="pm"><span class="pn">${r.name}</span><span class="ps">${r.sub || ''}</span></span>
+          <span class="pv">${r.right || ''}</span>
+        </button>`).join('')}</div>
+      <div class="acts"><button class="btn ghost" data-cancel="1">${cancelLabel}</button></div>`;
+    ovl.classList.add('show');
+    panel.querySelectorAll('.pick-row').forEach(b => {
+      b.onclick = () => { ovl.classList.remove('show'); resolve(rows[+b.dataset.i].val); };
+    });
+    panel.querySelector('[data-cancel]').onclick = () => { ovl.classList.remove('show'); resolve(null); };
+  });
+}
+function chooseNumber(title, sub, values) {
+  return chooseRows(title, sub, values.map(v => ({icon: v, name: `${v} 点`, val: v})), '取消');
+}
+
+/* ---------------- 地产信息 ---------------- */
+function propTableHTML(t, p) {
+  const groupTiles = S.tiles.filter(x => isProp(x) && x.group === t.group);
+  const mineCount = p ? groupTiles.filter(x => x.owner === p.id).length : 0;
+  const rows = [0, 1, 2, 3, 4].map(l => {
+    const r = Math.round(t.price * RENT[l] * (t.owner != null && ownsGroup(t.owner, t.group) ? 2 : 1) * (S.rentMod || 1));
+    return `<tr><td>${LV_NAME[l]}${l === 0 ? '（未建）' : ''}</td>
+      <td class="${t.level === l ? 'rent-now' : ''}">${t.level === l ? '当前 ' : ''}${fmt(r)}</td></tr>`;
+  }).join('');
+  return `<table class="prop-table">
+    <tr><td>${GROUPS[t.group].name}地块 · 同组已有 ${mineCount}/${groupTiles.length}</td><td>${fmt(t.price)}</td></tr>
+    ${rows}
+  </table>`;
+}
+
+async function showTileInfo(i) {
+  if (!S) return;
+  const t = S.tiles[i];
+  if (isProp(t)) {
+    const owner = t.owner != null ? S.players[t.owner] : null;
+    await modal({
+      icon: GROUPS[t.group].name === '美洲' ? '🌆' : '🏙️',
+      title: `${t.name} · ${LV_NAME[t.level]}`,
+      html: `<p>${owner ? `业主：<b style="color:${owner.color}">${owner.name}</b>` : '这块地还没有主人'}</p>
+        ${owner ? propTableHTML(t, owner) : `<table class="prop-table"><tr><td>地价</td><td>${fmt(t.price)}</td></tr>
+        <tr><td>空地租金</td><td>${fmt(Math.round(t.price * RENT[0]))}</td></tr></table>`}`,
+      actions: [{label: '关闭', v: 1, cls: 'ghost'}]
+    });
+  } else {
+    const tips = {
+      start: '经过领 $2,000 + 150 点数，停在这里再加 $500。',
+      jail: '路过探监，没别的事。',
+      hospital: '路过探病，没别的事。',
+      park: '领走所有税款累积的奖池。',
+      chance: '抽一张机会卡，多半是好事。',
+      fate: '抽一张命运卡，好坏都有。',
+      tax: '缴现金 10%（至少 $900）进停车奖池。',
+      store: '用点数买道具，12 种道具各有用处。',
+      stock: '买卖 4 支股票，股票计入总资产。',
+      bank: '存取款，存款每回合生息且不怕均富卡。',
+      news: '触发一条全局新闻，影响所有人。',
+      temple: '花 60 点数求一位吉神附身。',
+    };
+    await modal({icon: SPEC[t.type] ? SPEC[t.type][0] : '❓', title: t.name, html: `<p>${tips[t.type] || ''}</p>`, actions: [{label: '关闭', v: 1, cls: 'ghost'}]});
+  }
+}
+
+/* ---------------- 股票面板 ---------------- */
+function sparkSVG(hist, color) {
+  const w = 84, h = 26;
+  const min = Math.min(...hist), max = Math.max(...hist);
+  const rng = Math.max(1, max - min);
+  const pts = hist.map((v, i) => `${(i / Math.max(1, hist.length - 1)) * w},${h - 2 - ((v - min) / rng) * (h - 5)}`).join(' ');
+  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
+}
+function stockDialog(p) {
+  return new Promise(resolve => {
+    const ovl = $('ovl'), panel = $('panel');
+    const render = () => {
+      panel.className = 'panel';
+      const rows = S.stocks.map(s => {
+        const held = p.stocks[s.id] || 0;
+        const avg = held ? (p.stockCost[s.id] || 0) / held : 0;
+        const pl = held ? Math.round((s.price - avg) * held) : 0;
+        const prev = s.hist.length > 1 ? s.hist[s.hist.length - 2] : s.price;
+        const up = s.price >= prev;
+        return `<div class="stock-row">
+            <div class="sn"><b>${s.name}</b><span>${s.code}</span></div>
+            <div class="sp">${sparkSVG(s.hist, up ? '#c0392b' : '#2f8a5e')}</div>
+            <div class="sv ${up ? 'up' : 'down'}">${fmt(s.price)}</div>
+            <div class="sact">
+              <button class="btn green sm" data-buy="${s.id}">买100</button>
+              <button class="btn ghost sm" data-sell="${s.id}">卖100</button>
+            </div>
+          </div>
+          <div style="font-size:10px;color:#8a7350;text-align:right;margin:-2px 0 5px">
+            持有 ${held} 股${held ? ` · <b class="${pl >= 0 ? 'up' : 'down'}">${pl >= 0 ? '盈' : '亏'} ${fmt(Math.abs(pl))}</b>` : ''}
+          </div>`;
+      }).join('');
+      panel.innerHTML = `<h3>📈 证券交易所</h3>
+        <p style="font-size:11px">现金 <b>${fmt(p.cash)}</b> · 持仓市值 <b>${fmt(stockValue(p))}</b> · 每次交易 100 股</p>
+        <div style="margin-top:8px">${rows}</div>
+        <div class="acts"><button class="btn gold" data-close="1">离开</button></div>`;
+      panel.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => {
+        if (buyStock(p, b.dataset.buy, 100)) { log(`📈 <b>${p.name}</b> 买入 100 股`); sfx.buy(); }
+        else toast('现金不够');
+        render();
+      });
+      panel.querySelectorAll('[data-sell]').forEach(b => b.onclick = () => {
+        if (sellStock(p, b.dataset.sell, 100)) { log(`📉 <b>${p.name}</b> 卖出 100 股`); sfx.coin(); }
+        else toast('没有那么多股');
+        render();
+      });
+      panel.querySelector('[data-close]').onclick = () => { ovl.classList.remove('show'); resolve(); };
+    };
+    ovl.classList.add('show');
+    render();
+  });
+}
+
+/* ---------------- 规则 ---------------- */
+function openRules() {
+  modal({
+    icon: '📖', title: '游戏规则',
+    html: `<div class="rule-list">
+      <h4>🎯 目标</h4>
+      让对手全部破产，或者在 ${MAX_ROUNDS} 回合结束时总资产最高。
+      <h4>🎲 回合</h4>
+      每回合掷两颗骰子前进，经过起点领 <b>$2,000 + 150 点数</b>。掷完才结算落点。
+      <h4>🏙️ 地产</h4>
+      空地可买；停在自己地上可盖楼：木屋 → 洋房 → 大楼 → 摩天楼，租金逐级暴涨。
+      <b>集齐同色一整组，租金翻倍。</b>
+      <h4>💎 点数与道具</h4>
+      点数靠经过起点和事件获得，在道具店换道具。共 12 种：遥控骰子、路障、地雷、传送卡、均富卡、购地卡、拆迁卡、免费卡、换地卡、转向卡、乌龟卡、天使卡。点击右下道具栏使用。
+      <h4>⛩️ 神仙</h4>
+      财神（收租翻倍）、土地公（免费盖楼）、福神（多走 2 步）、天使（免租）是吉神；穷神（付租翻倍）、衰神（少走 1 步）是凶神。土地庙可花 60 点数求吉神。
+      <h4>📈 股票 / 🏦 银行</h4>
+      4 支股票每回合波动，买卖赚差价，市值计入总资产。银行存款每回合 5% 利息（钱夫人 10%），且不会被均富卡和查税动到。
+      <h4>🏥 特殊格</h4>
+      税务局收 10% 现金进停车奖池；停车场可领走奖池；地雷会让人住院；监狱停 2 回合。
+      <h4>💥 破产</h4>
+      现金不够会依次卖股票、取存款、变卖地产（八折），还不够就破产，地产归债主。
+      <h4>🧑‍🤝‍🧑 角色特技</h4>
+      阿土伯买地 9 折、孙小美收租 +25%、钱夫人利息翻倍、沙隆巴斯付租 -20%、忍太郎坐牢住院少 1 回合、乌咪常捡道具。
+    </div>`,
+    actions: [{label: '开始赚钱', v: 1}]
+  });
+}
+
+/* ---------------- 结算 ---------------- */
+function showResult(title, sub) {
+  const sorted = [...S.players].sort((a, b) => (b.alive - a.alive) || (totalAssets(b) - totalAssets(a)));
+  const rows = sorted.map((p, i) => `
+    <div class="rank-row ${i === 0 ? 'first' : ''}">
+      <div class="av">${avatarSVG(p.charId)}</div>
+      <div class="rn">${['🥇', '🥈', '🥉', '4️⃣'][i] || ''} ${p.name} ${p.alive ? '' : '（破产）'}
+        <div style="font-size:9.5px;color:#9a8460;font-weight:600">现金 ${fmt(p.cash)} · 存款 ${fmt(p.savings)} · 股票 ${fmt(stockValue(p))} · 地产 ${p.props.length} 块</div>
+      </div>
+      <div class="rv">${fmt(totalAssets(p))}</div>
+    </div>`).join('');
+  modal({
+    icon: '🏆', title, html: `<p>${sub}</p>${rows}`,
+    actions: [{label: '再来一局', v: 1}]
+  }).then(() => location.reload());
+}
+
+/* ---------------- 交互绑定 ---------------- */
+$('rollBtn').onclick = () => {
+  if (!S || !S.awaitRoll || !S.rollResolve) return;
+  const r = S.rollResolve;
+  S.rollResolve = null;
+  S.awaitRoll = false;
+  r();
+};
+$('rulesBtn').onclick = openRules;
+$('muteBtn').onclick = () => {
+  MUTE = !MUTE;
+  $('muteBtn').textContent = MUTE ? '🔇 静音' : '🔊 音效';
+  if (!MUTE) tone(880, .08, 'sine', .05);
+};
+$('bankBtn').onclick = () => { if (S && S.players[S.me]) bankDialog(S.players[S.me]); };
+$('stockBtn').onclick = () => { if (S && S.players[S.me]) stockDialog(S.players[S.me]); };
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' && S && S.awaitRoll && S.rollResolve) { e.preventDefault(); $('rollBtn').click(); }
+});
+
+/* ---------------- 开始页 ---------------- */
+let pickedChar = 'tu', pickedCount = 4;
+function initStart() {
+  $('chars').innerHTML = CHARS.map(c => `
+    <div class="char ${c.id === pickedChar ? 'sel' : ''}" data-c="${c.id}">
+      <div class="tick">✔</div>
+      <div class="cav">${avatarSVG(c.id)}</div>
+      <div class="cn">${c.name}</div>
+      <div class="ct">${c.tag}</div>
+      <div class="cs">${c.skill}</div>
+    </div>`).join('');
+  $('chars').querySelectorAll('.char').forEach(el => {
+    el.onclick = () => {
+      pickedChar = el.dataset.c;
+      $('chars').querySelectorAll('.char').forEach(x => x.classList.toggle('sel', x === el));
+      tone(660, .07, 'sine', .04);
+    };
+  });
+  $('counts').querySelectorAll('button').forEach(b => {
+    b.onclick = () => {
+      pickedCount = +b.dataset.n;
+      $('counts').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+    };
+  });
+  $('startBtn').onclick = () => {
+    $('startScreen').classList.add('hide');
+    startGame(pickedCount, pickedChar, false);
+  };
+}
+
+/* ---------------- 启动 ---------------- */
+const qs = new URLSearchParams(location.search);
+
+function boot() {
+  if (qs.has('nofx')) document.body.classList.add('nofx');
+  buildBoard();
+  initDie();
+  initStart();
+
+  if (qs.has('autotest')) {
+    SPEED = 0; MUTE = true;
+    $('startScreen').classList.add('hide');
+    const maxTurns = parseInt(qs.get('autotest'), 10) || 400;
+    startGame(4, 'tu', true);
+    S.turnCap = maxTurns;
+    S.itemSpam = qs.has('itemspam');
+    S.loop.then(() => {
+      setTimeout(() => {
+        const t = `AUTOTEST_OK turns=${S.turnCount} round=${S.round} over=${S.over} `
+          + `cash=${S.players.map(p => p.cash).join('/')} props=${S.players.map(p => p.props.length).join('/')} `
+          + `stocks=${S.players.map(p => Object.values(p.stocks).reduce((a, b) => a + b, 0)).join('/')} `
+          + `pts=${S.players.map(p => p.pts).join('/')}`;
+        document.title = t;
+        $('autotest-result').textContent = t;
+        updateUI();
+      }, 50);
+    }).catch(e => {
+      document.title = 'AUTOTEST_FAIL ' + e.message;
+      $('autotest-result').textContent = 'FAIL ' + (e.stack || e.message);
+    });
+  } else if (qs.has('smoketest')) {
+    SPEED = 0.05; MUTE = true;
+    $('startScreen').classList.add('hide');
+    const errs = [];
+    window.onerror = (m, s, l) => { errs.push(m + '@' + l); };
+    startGame(2, 'tu', false);
+    let guard = 0;
+    const tick = setInterval(() => {
+      guard++;
+      if (!S || S.over || S.turnCount > 80 || guard > 6000) {
+        clearInterval(tick);
+        const t = `SMOKE_OK turns=${S.turnCount} round=${S.round} over=${S.over} err=${errs.length} ${errs.join(' | ')}`;
+        document.title = t;
+        $('autotest-result').textContent = t;
+        return;
+      }
+      const ovl = $('ovl');
+      if (ovl.classList.contains('show')) {
+        const b = ovl.querySelector('[data-close]') || ovl.querySelector('.btn.gold') || ovl.querySelector('.btn');
+        if (b) b.click();
+      } else if (S.awaitRoll && S.rollResolve) {
+        $('rollBtn').click();
+      }
+    }, 50);
+  } else if (qs.get('preview') === 'card') {
+    $('startScreen').classList.add('hide');
+    startGame(4, 'tu', true);
+    S.stopped = true;
+    setTimeout(() => modal({
+      icon: '💰', title: '财神降临',
+      html: '<p>财神爷看中了你，<b>附身 4 回合</b>：收租翻倍、过路费翻倍！</p>',
+      actions: [{label: '继续', v: 1}], kind: 'chance'
+    }), 300);
+  } else if (qs.get('preview') === 'stock') {
+    $('startScreen').classList.add('hide');
+    startGame(4, 'tu', false);
+    S.stopped = true;
+    S.players[0].cash = 32000;
+    S.players[0].stocks = {tech: 300, land: 100, bank: 0, oil: 0};
+    S.players[0].stockCost = {tech: 30000, land: 9000, bank: 0, oil: 0};
+    setTimeout(() => stockDialog(S.players[0]), 300);
+  } else if (qs.get('preview') === 'store') {
+    $('startScreen').classList.add('hide');
+    startGame(4, 'tu', false);
+    S.stopped = true;
+    S.players[0].pts = 420;
+    S.players[0].items = {dice: 2, block: 1, mine: 1, tp: 1, rich: 1, angel: 1};
+    setTimeout(() => visitStore(S.players[0]), 300);
+  } else if (qs.get('preview') === 'over') {
+    $('startScreen').classList.add('hide');
+    startGame(4, 'tu', true);
+    S.stopped = true;
+    setTimeout(() => {
+      S.players[0].cash = 42000; S.players[1].alive = false; S.players[1].cash = 0;
+      S.players[2].cash = 28000; S.players[3].alive = false; S.players[3].cash = 0;
+      endGame(S.players[0]);
+    }, 400);
+  }
+}
+boot();
+
+</script>
+</body>
+</html>
