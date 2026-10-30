@@ -56,6 +56,14 @@ node build.mjs   → 生成 index.html（单文件，约 108 KB）
 | `?smoketest=1` | 模拟真人：自动点掷骰子、自动确认弹窗 |
 | `?nofx=1` | 关闭所有动画（截图用） |
 | `?preview=card/store/stock/over` | 直接打开对应界面（截图用） |
+| `?audiotest=1` | 音频自检：报告 AudioContext 状态（`running` 才正常） |
+| `python audio-e2e.py [url]` | 真实点击解锁音频的端到端测试（需 `pip install playwright`） |
+
+## 音效
+
+纯 WebAudio 合成，无音频文件依赖。浏览器自动播放策略要求 AudioContext 必须在用户手势内创建，
+因此首次点击（角色卡 / 开始游戏 / 掷骰子）会触发一次静默解锁，之后掷骰、走格、买地、升级、
+抽卡、收租、破产都各有提示音。右下「🔊 音效」可随时静音。
 
 当前结果：常规对局 160 回合零异常；道具压测零异常；真人流程 80 回合零报错。
 

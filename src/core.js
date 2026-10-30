@@ -6,6 +6,8 @@ let S = null;
 let SPEED = 1;
 let MUTE = false;
 let AC = null;
+let audioUnlocked = false;
+let audioWarned = false;
 
 const $ = id => document.getElementById(id);
 const sleep = ms => new Promise(r => setTimeout(r, Math.max(0, ms * SPEED)));
@@ -15,28 +17,63 @@ const fmt = n => '$' + Math.round(n).toLocaleString('en-US');
 const isProp = t => t.type === 'prop';
 const isCorner = ty => ['start', 'jail', 'hospital', 'park'].includes(ty);
 
-/* ---------------- 音效 ---------------- */
+/* ---------------- 音效 ----------------
+   浏览器自动播放策略：AudioContext 必须在「用户手势」内创建并 resume，
+   否则会一直停在 suspended 状态（表现就是整局没声音）。
+   本作的掷骰动画、AI 回合都发生在 await 之后，已经脱离手势上下文，
+   所以必须单独监听手势事件做 unlock，并在每次发声前兜底 resume。 */
+function ensureAudio() {
+  try {
+    if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state === 'suspended') AC.resume().catch(() => {});
+    return AC;
+  } catch (e) { return null; }
+}
+function unlockAudio() {
+  if (AC && AC.state === 'running') { audioUnlocked = true; return; }
+  const ac = ensureAudio();
+  if (!ac) return;
+  ac.resume().catch(() => {});
+  try {                       // iOS/Safari 需要真的播一次才解锁
+    const o = ac.createOscillator(), g = ac.createGain();
+    g.gain.value = 0.00001;
+    o.connect(g); g.connect(ac.destination);
+    o.start(); o.stop(ac.currentTime + 0.02);
+  } catch (e) {}
+  audioUnlocked = true;
+  setTimeout(() => {
+    if (AC && AC.state !== 'running' && !audioWarned) {
+      audioWarned = true;
+      if (typeof toast === 'function') toast('🔈 浏览器拦住了声音，再点一下画面');
+    }
+  }, 150);
+}
 function tone(freq, dur, type = 'sine', vol = 0.05, delay = 0) {
   if (MUTE || SPEED === 0) return;
+  const ac = ensureAudio();
+  if (!ac) return;
   try {
-    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
-    const t0 = AC.currentTime + delay;
-    const o = AC.createOscillator(), g = AC.createGain();
+    const t0 = ac.currentTime + delay;
+    const o = ac.createOscillator(), g = ac.createGain();
     o.type = type; o.frequency.setValueAtTime(freq, t0);
     g.gain.setValueAtTime(0, t0);
     g.gain.linearRampToValueAtTime(vol, t0 + 0.015);
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    o.connect(g); g.connect(AC.destination);
+    o.connect(g); g.connect(ac.destination);
     o.start(t0); o.stop(t0 + dur + 0.02);
   } catch (e) {}
 }
 const sfx = {
-  dice: () => { tone(300, .05, 'square', .04); tone(420, .05, 'square', .04, .07); tone(520, .05, 'square', .04, .14); },
-  coin: () => { tone(880, .09, 'triangle', .06); tone(1320, .12, 'triangle', .05, .07); },
-  buy:  () => { tone(523, .12, 'sine', .06); tone(659, .12, 'sine', .06, .08); tone(784, .18, 'sine', .06, .16); },
-  pay:  () => { tone(220, .16, 'sawtooth', .04); tone(160, .2, 'sawtooth', .035, .1); },
-  bad:  () => { tone(180, .3, 'square', .04); },
-  win:  () => { [523, 659, 784, 1047].forEach((f, i) => tone(f, .22, 'sine', .07, i * .11)); },
+  dice: () => { tone(300, .06, 'square', .11); tone(420, .06, 'square', .11, .07); tone(520, .06, 'square', .11, .14); },
+  step: () => tone(680, .045, 'triangle', .055),
+  coin: () => { tone(880, .09, 'triangle', .14); tone(1320, .12, 'triangle', .12, .07); },
+  buy:  () => { tone(523, .12, 'sine', .14); tone(659, .12, 'sine', .14, .08); tone(784, .18, 'sine', .14, .16); },
+  pay:  () => { tone(220, .16, 'sawtooth', .11); tone(160, .2, 'sawtooth', .1, .1); },
+  bad:  () => { tone(180, .3, 'square', .11); tone(120, .34, 'square', .09, .12); },
+  card: () => { tone(700, .08, 'triangle', .12); tone(980, .11, 'triangle', .11, .06); },
+  upg:  () => { tone(659, .1, 'sine', .13); tone(880, .13, 'sine', .13, .09); tone(1175, .2, 'sine', .12, .19); },
+  win:  () => { [523, 659, 784, 1047].forEach((f, i) => tone(f, .22, 'sine', .16, i * .11)); },
+  lose: () => { [392, 330, 262].forEach((f, i) => tone(f, .26, 'sawtooth', .11, i * .13)); },
 };
 
 /* =====================================================================
@@ -485,6 +522,7 @@ async function moveSteps(p, steps, dir = 1) {
     p.pos = (p.pos + dir + N) % N;
     if (dir > 0 && p.pos === 0) passGo(p);
     renderPawns();
+    sfx.step();
     if (p._el) {
       p._el.classList.add('moving');
       setTimeout(() => p._el && p._el.classList.remove('moving'), 130);
@@ -715,7 +753,7 @@ function upgrade(p, t, free) {
   t.level++;
   log(`🏗️ <b>${p.name}</b> 把「${t.name}」升级为 <b>${LV_NAME[t.level]}</b>${cost ? `（-${fmt(cost)}）` : '（免费）'}`);
   if (!free && p._el) floatMoney(p, '-' + fmt(cost), '#ffd08a');
-  sfx.buy();
+  sfx.upg();
   refreshTile(t.i);
   updateUI();
 }
@@ -823,6 +861,7 @@ async function drawCard(p, kind) {
   const immune = (p.god === 'angel' || p.angel > 0);
   if (lucky && c.bad && Math.random() < 0.5) c = pick(deck.filter(x => !x.bad));
   const blocked = immune && c.bad;
+  sfx.card();
   if (!p.ai) {
     await modal({
       icon: c.icon, title: c.title,

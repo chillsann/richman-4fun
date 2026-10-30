@@ -557,6 +557,7 @@ function showResult(title, sub) {
 
 /* ---------------- 交互绑定 ---------------- */
 $('rollBtn').onclick = () => {
+  unlockAudio();
   if (!S || !S.awaitRoll || !S.rollResolve) return;
   const r = S.rollResolve;
   S.rollResolve = null;
@@ -574,6 +575,10 @@ $('stockBtn').onclick = () => { if (S && S.players[S.me]) stockDialog(S.players[
 document.addEventListener('keydown', e => {
   if (e.code === 'Space' && S && S.awaitRoll && S.rollResolve) { e.preventDefault(); $('rollBtn').click(); }
 });
+/* 浏览器自动播放策略：必须在用户手势里解锁 AudioContext，
+   否则掷骰、AI 回合等 await 之后的发声会被浏览器静音。 */
+['pointerdown', 'mousedown', 'touchstart', 'keydown', 'click'].forEach(ev =>
+  document.addEventListener(ev, unlockAudio, {capture: true, passive: true}));
 
 /* ---------------- 开始页 ---------------- */
 let pickedChar = 'tu', pickedCount = 4;
@@ -635,6 +640,16 @@ function boot() {
       document.title = 'AUTOTEST_FAIL ' + e.message;
       $('autotest-result').textContent = 'FAIL ' + (e.stack || e.message);
     });
+  } else if (qs.has('audiotest')) {
+    // 音频链路自检：报告 AudioContext 状态与能否真正起振
+    unlockAudio();
+    sfx.dice(); sfx.coin(); sfx.card(); sfx.buy(); sfx.bad(); sfx.win();
+    setTimeout(() => {
+      const t = `AUDIO state=${AC ? AC.state : 'null'} sr=${AC ? AC.sampleRate : 0} `
+        + `ctx=${AC ? AC.constructor.name : '-'} unlocked=${audioUnlocked}`;
+      document.title = t;
+      if ($('autotest-result')) $('autotest-result').textContent = t;
+    }, 500);
   } else if (qs.has('smoketest')) {
     SPEED = 0.05; MUTE = true;
     $('startScreen').classList.add('hide');
